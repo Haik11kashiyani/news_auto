@@ -15,6 +15,7 @@ class ScriptGenerator:
     def generate_script(self, news_article):
         """
         Generates a viral script for the given news article.
+        Tries multiple models in case of API deprecation/404s.
         """
         title = news_article.get('title', 'Breaking News')
         description = news_article.get('description', '') or news_article.get('content', '')[:500]
@@ -50,14 +51,29 @@ class ScriptGenerator:
         Ensure valid JSON output.
         """
 
-        try:
-            response = self.model.generate_content(prompt)
-            # Simple cleanup to ensure JSON parsing if markdown fences are returned
-            text = response.text.replace('```json', '').replace('```', '').strip()
-            return json.loads(text)
-        except Exception as e:
-            print(f"Error generating script: {e}")
-            return None
+        # List of models to try in order of preference
+        models_to_try = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+            'gemini-pro'
+        ]
+
+        for model_name in models_to_try:
+            try:
+                print(f"Trying Gemini Model: {model_name}...")
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                
+                # Simple cleanup to ensure JSON parsing
+                text = response.text.replace('```json', '').replace('```', '').strip()
+                return json.loads(text)
+            except Exception as e:
+                print(f"Model {model_name} failed: {e}")
+                time.sleep(1) # Brief pause before retry
+        
+        print("All Gemini models failed.")
+        return None
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
