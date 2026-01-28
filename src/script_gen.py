@@ -37,15 +37,24 @@ class ScriptGenerator:
             
             print(f"Available Models: {available_models}")
             
-            # Priority Logic: Flash > Pro > Any Gemini
+            # Priority Logic: Prefer 2.0 Flash -> 1.5 Flash -> Others
+            # Note: "gemini-pro-latest" might be v1beta only. 
+            # Safer to default all to v1beta unless explicitly known as v1 legacy.
+            
             for m in available_models:
-                if "flash" in m and "1.5" in m: return (m, "v1beta")
+                if "gemini-2.0-flash" in m: return (m, "v1beta")
             for m in available_models:
-                if "pro" in m and "1.5" in m: return (m, "v1beta")
+                if "gemini-1.5-flash" in m: return (m, "v1beta")
+            
+            # If we fall back to generic names, be careful
             for m in available_models:
-                if "gemini-pro" in m: return (m, "v1")
+                if "gemini-pro" in m: 
+                    # check if it's the legacy v1 or new v1beta
+                    if "latest" in m or "1.5" in m:
+                        return (m, "v1beta")
+                    return (m, "v1")
                 
-            # If nothing specific found, take the first valid one
+            # If nothing specific found, take the first valid one and try v1beta (most modern)
             if available_models:
                 return (available_models[0], "v1beta")
                 
