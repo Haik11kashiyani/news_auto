@@ -91,14 +91,29 @@ class VisualGenerator:
         Now inputs both HEADLINE (for the card) and TICKER (for the scroll).
         """
         
-        template_path = os.path.abspath("templates/overlay.html")
+        # ROBUST PATH CONSTRUCTION
+        # Assuming running from 'news_auto' root directory
+        project_root = os.getcwd() 
+        template_relative = os.path.join("templates", "overlay.html")
+        template_path = os.path.join(project_root, template_relative)
+        
+        print(f"DEBUG: Looking for template at: {template_path}")
+        if not os.path.exists(template_path):
+            print(f"ERROR: Template not found at {template_path}")
+            # Try finding it relative to this script if CWD is wrong
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            template_path = os.path.join(script_dir, "..", "templates", "overlay.html")
+            template_path = os.path.abspath(template_path)
+            print(f"DEBUG: Retry looking at: {template_path}")
+
         output_seq_dir = os.path.join(self.generated_dir, "overlay_seq")
         os.makedirs(output_seq_dir, exist_ok=True)
         
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 1080, "height": 1920})
-            url = f"file:///{template_path}"
+            url = f"file:///{template_path.replace(os.sep, '/')}" # Ensure forward slashes for URL
+            print(f"DEBUG: Navigation URL: {url}")
             page.goto(url)
             
             # Inject Usage of new function signature in HTML

@@ -83,9 +83,9 @@ class VideoEditor:
                 output_path, 
                 fps=24, 
                 codec='libx264', 
-                audio_codec='aac',
-                threads=4,
-                preset='ultrafast' # For speed in testing
+                audio_codec='aac', 
+                threads=4
+                # preset removed for stability
             )
             
             return output_path
