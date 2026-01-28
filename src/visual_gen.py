@@ -85,24 +85,10 @@ class VisualGenerator:
             print(f"Download failed for {url}: {e}")
             return None
 
-    def generate_overlay(self, ticker_text, time_str, Duration=10):
+    def generate_overlay(self, headline, ticker_text, Duration=10):
         """
-        Uses Playwright to render the HTML overlay and record it (or take screenshots).
-        For simplicity and performance in this script, we might just take a screenshot 
-        if animation is too complex to record frame-by-frame without heavy re-engineering.
-        
-        However, User asked for "Playwright can capture... script uploads...".
-        To keep it simple: We will capture a transparent screenshot sequence OR 
-        just a single static overlay if video is too heavy.
-        
-        Let's try to capture a 5-second transparent webm if possible, or just return the HTML path 
-        for MoviePy to use standard text clips. 
-        
-        Actually, simplest robust method:
-        Update HTML file with text -> Open in Browser -> Screenshot (with transparency) -> Use as Overlay Image.
-        (Animation effects like scrolling ticker might need video capture, but let's stick to static overlay with scrolling text handled by MoviePy? 
-        No, prompt said: "Playwright can take a sequence of screenshots... stitch into video").
-        OK, I will implement the Sequence Capture.
+        Captures the premium Glassmorphism overlay.
+        Now inputs both HEADLINE (for the card) and TICKER (for the scroll).
         """
         
         template_path = os.path.abspath("templates/overlay.html")
@@ -115,24 +101,20 @@ class VisualGenerator:
             url = f"file:///{template_path}"
             page.goto(url)
             
-            # Inject Data
-            page.evaluate(f"setTickerText('{ticker_text}')")
-            # Page automatically updates time, but we can force it if needed.
+            # Inject Usage of new function signature in HTML
+            # Escape quotes to prevent JS errors
+            safe_headline = headline.replace("'", "\\'").replace('"', '\\"')
+            safe_ticker = ticker_text.replace("'", "\\'").replace('"', '\\"')
             
-            # Capture Frames (Simplified 10fps for 5s loop to save time/space)
-            # Ticker loop is 15s in CSS.
+            page.evaluate(f"setTickerText('{safe_headline}', '{safe_ticker}')")
+            
+            # Capture Frames (10fps)
             fps = 10 
             total_frames = int(Duration * fps)
             
             print("Rendering Overlay Sequence...")
             for i in range(total_frames):
-                # We assume the CSS animation is running.
-                # To sync, maybe we step time? Playwright doesn't easily step CSS time.
-                # We'll just capture real-time.
                 page.screenshot(path=os.path.join(output_seq_dir, f"frame_{i:03d}.png"), omit_background=True)
-                # Sleep a bit to match FPS roughly (not perfect sync but works for visual ticker)
-                # time.sleep(1/fps) # Actually, screenshot takes time, so this will be slow/laggy.
-                # Better approach for high quality: Use MoviePy for Ticker, Playwright for Static layout.
                 
             browser.close()
             

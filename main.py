@@ -60,11 +60,13 @@ def main():
     bg_path, bg_type = visual_gen.get_background_video(article, keywords)
     
     overlay_text = script_data.get("ticker_text", "BREAKING NEWS")
+    headline_text = script_data.get("headline", "BREAKING NEWS")
+    
     # Estimate audio duration (mock if file doesn't exist yet properly, but we have it)
     # We will let VideoEditor handle duration reading.
     # Overlay length is handled in Visual Gen but we need duration hint ideally.
     # For now, generate 15s sequence loop, editor truncates.
-    overlay_path = visual_gen.generate_overlay(overlay_text, "LIVE", Duration=15) 
+    overlay_path = visual_gen.generate_overlay(headline_text, overlay_text, Duration=15) 
 
     if not bg_path or not overlay_path:
         print("Failed to generate visuals.")

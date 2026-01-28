@@ -14,8 +14,19 @@ class VideoEditor:
         """
         try:
             # 1. Load Audio
+            print(f"Loading Audio from: {audio_path}")
+            if not os.path.exists(audio_path):
+                print("Error: Audio file not found!")
+                return None
+            
+            # Check size
+            if os.path.getsize(audio_path) < 100:
+                print("Error: Audio file is empty or too small!")
+                return None
+
             audio = AudioFileClip(audio_path)
             duration = audio.duration
+            print(f"Audio Duration: {duration}s")
             
             # 2. Prepare Background
             if bg_type == "video":
