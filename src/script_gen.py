@@ -10,7 +10,7 @@ class ScriptGenerator:
             print("Warning: GEMINI_API_KEY not found.")
         genai.configure(api_key=api_key)
         # Using flash model for speed/cost efficiency as per plan
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def generate_script(self, news_article):
         """
