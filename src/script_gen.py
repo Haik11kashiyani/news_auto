@@ -1,26 +1,26 @@
-import google.generativeai as genai
 import os
 import json
 import time
+import requests
 
 class ScriptGenerator:
     def __init__(self):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
             print("Warning: GEMINI_API_KEY not found.")
-        genai.configure(api_key=api_key)
-        # Using flash model for speed/cost efficiency as per plan
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # We will iterate manually over endpoints/models if needed
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def generate_script(self, news_article):
         """
-        Generates a viral script for the given news article.
-        Tries multiple models in case of API deprecation/404s.
+        Generates a viral script using the Gemini REST API.
+        Bypasses SDK versioning issues.
         """
         title = news_article.get('title', 'Breaking News')
         description = news_article.get('description', '') or news_article.get('content', '')[:500]
         
-        prompt = f"""
+        prompt_text = f"""
         Role: You are the Lead Scriptwriter for "Logic Vault," a viral 2026 digital news network. Your specialty is high-retention, fast-paced news "Shorts" that combine the authority of a 20th-century TV anchor with the energy of a viral TikTok creator.
 
         Task: Transform the provided raw news data into a 45-second high-impact video script.
@@ -48,29 +48,46 @@ class ScriptGenerator:
             "video_search_keywords": ["keyword1", "keyword2"]
         }}
         
-        Ensure valid JSON output.
+        Ensure valid JSON output. Do not include markdown naming like ```json.
         """
 
-        # List of models to try in order of preference
-        models_to_try = [
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-pro',
-            'gemini-pro'
-        ]
-
-        for model_name in models_to_try:
+        # Models to try (REST API naming convention)
+        models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
+        
+        for model in models:
             try:
-                print(f"Trying Gemini Model: {model_name}...")
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(prompt)
+                print(f"Trying Gemini Model (REST): {model}...")
+                url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
                 
-                # Simple cleanup to ensure JSON parsing
-                text = response.text.replace('```json', '').replace('```', '').strip()
-                return json.loads(text)
+                payload = {
+                    "contents": [{
+                        "parts": [{"text": prompt_text}]
+                    }],
+                    "generationConfig": {
+                        "response_mime_type": "application/json"
+                    }
+                }
+                
+                response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+                
+                if response.status_code != 200:
+                    print(f"API Error ({model}): {response.status_code} - {response.text}")
+                    continue
+
+                result = response.json()
+                # Parse candidate
+                try:
+                    raw_text = result['candidates'][0]['content']['parts'][0]['text']
+                    # Clean potential markdown
+                    clean_text = raw_text.replace('```json', '').replace('```', '').strip()
+                    return json.loads(clean_text)
+                except (KeyError, IndexError, json.JSONDecodeError) as e:
+                    print(f"Parsing error for {model}: {e}")
+                    continue
+
             except Exception as e:
-                print(f"Model {model_name} failed: {e}")
-                time.sleep(1) # Brief pause before retry
+                print(f"Request failed for {model}: {e}")
+                time.sleep(1)
         
         print("All Gemini models failed.")
         return None
@@ -79,6 +96,5 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
     gen = ScriptGenerator()
-    # Mock article for testing
     mock_news = {"title": "Test News", "description": "This is a test description."}
     print(gen.generate_script(mock_news))
