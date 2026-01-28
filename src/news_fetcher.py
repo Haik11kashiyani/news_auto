@@ -49,6 +49,13 @@ class NewsFetcher:
             
         return all_news
 
+    def mark_as_processed(self, article_id):
+        """
+        Manually marks an article as processed (saved to file).
+        Call this ONLY after video is successfully generated.
+        """
+        self._save_processed_id(article_id)
+
     def _fetch_worldnews(self):
         """
         Provider: World News API
@@ -82,7 +89,7 @@ class NewsFetcher:
                             "source_id": "worldnewsapi"
                         }
                         fresh_articles.append(std_article)
-                        self._save_processed_id(article_id)
+                        # REMOVED: self._save_processed_id(article_id) 
             return fresh_articles
         except Exception as e:
             print(f"World News API failed: {e}")
@@ -104,7 +111,7 @@ class NewsFetcher:
                         # Ensure image_url key exists
                         article["image_url"] = article.get("image_url") 
                         fresh_articles.append(article)
-                        self._save_processed_id(article_id)
+                        # REMOVED: self._save_processed_id(article_id)
             return fresh_articles
         except Exception as e:
             print(f"NewsData.io failed: {e}")

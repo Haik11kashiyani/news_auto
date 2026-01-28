@@ -77,6 +77,12 @@ def main():
     
     if final_path:
         print(f"SUCCESS: Video contents saved to {final_path}")
+        
+        # IMPORTANT: Now that video is safe, tag this news as 'done' so we don't repeat it
+        # BUT don't re-do it if it crashed midway.
+        print(f"Marking article {article['article_id']} as processed...")
+        fetcher.mark_as_processed(article['article_id'])
+        
         # Note: Upload comes next
         print("--- 6. Upload Stub (Pending) ---")
         # uploader.upload(final_path, script_data)

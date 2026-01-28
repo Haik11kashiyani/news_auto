@@ -1,5 +1,4 @@
 requests
-google-generativeai>=0.8.3
 python-dotenv
 playwright
 moviepy==1.0.3
