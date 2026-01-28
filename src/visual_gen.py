@@ -97,14 +97,17 @@ class VisualGenerator:
         template_relative = os.path.join("templates", "overlay.html")
         template_path = os.path.join(project_root, template_relative)
         
-        print(f"DEBUG: Looking for template at: {template_path}")
+        print(f"DEBUG: Reading template from: {template_path}")
         if not os.path.exists(template_path):
-            print(f"ERROR: Template not found at {template_path}")
-            # Try finding it relative to this script if CWD is wrong
+             # Try finding it relative to this script if CWD is wrong
             script_dir = os.path.dirname(os.path.abspath(__file__))
             template_path = os.path.join(script_dir, "..", "templates", "overlay.html")
             template_path = os.path.abspath(template_path)
-            print(f"DEBUG: Retry looking at: {template_path}")
+            print(f"DEBUG: Retry reading from: {template_path}")
+
+        # Read content directly to avoid file:// url issues in container
+        with open(template_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
 
         output_seq_dir = os.path.join(self.generated_dir, "overlay_seq")
         os.makedirs(output_seq_dir, exist_ok=True)
@@ -112,9 +115,10 @@ class VisualGenerator:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 1080, "height": 1920})
-            url = f"file:///{template_path.replace(os.sep, '/')}" # Ensure forward slashes for URL
-            print(f"DEBUG: Navigation URL: {url}")
-            page.goto(url)
+            
+            # DIRECT INJECTION - 100% Reliable
+            print("DEBUG: Setting page content directly...")
+            page.set_content(html_content)
             
             # Inject Usage of new function signature in HTML
             # Escape quotes to prevent JS errors

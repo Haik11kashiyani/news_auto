@@ -84,8 +84,9 @@ class VideoEditor:
                 fps=24, 
                 codec='libx264', 
                 audio_codec='aac', 
-                threads=4
-                # preset removed for stability
+                threads=4,
+                temp_audiofile='temp-audio.m4a', 
+                remove_temp=True
             )
             
             return output_path
