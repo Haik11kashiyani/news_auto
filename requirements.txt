@@ -1,0 +1,7 @@
+requests
+google-generativeai
+python-dotenv
+playwright
+moviepy
+Pillow
+gTTS
