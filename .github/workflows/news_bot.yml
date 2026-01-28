@@ -1,0 +1,45 @@
+name: Newsroom 24/7 Bot
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # Run every 6 hours
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browsers
+        run: |
+          playwright install chromium --with-deps
+
+      - name: Run News Bot
+        env:
+          NEWSDATA_API_KEY: ${{ secrets.NEWSDATA_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TTS_API_KEY: ${{ secrets.TTS_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CREDS_JSON: ${{ secrets.YOUTUBE_CREDS_JSON }}
+        run: python main.py
+
+      - name: Upload Video Artifact (Optional Debugging)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-videos
+          path: generated/*.mp4
+          retention-days: 5
