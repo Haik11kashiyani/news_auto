@@ -52,44 +52,54 @@ class ScriptGenerator:
         """
 
         # Models to try (REST API naming convention)
-        models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
+        # 1. Modern Models (Support JSON Mode)
+        json_models = ["gemini-1.5-flash", "gemini-1.5-pro"]
         
-        for model in models:
+        # 2. Legacy/Fallback Models (Text Mode only)
+        legacy_models = ["gemini-pro"]
+
+        # Try JSON models first
+        for model in json_models:
             try:
-                print(f"Trying Gemini Model (REST): {model}...")
+                print(f"Trying Gemini Model (JSON Mode): {model}...")
                 url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
-                
                 payload = {
-                    "contents": [{
-                        "parts": [{"text": prompt_text}]
-                    }],
-                    "generationConfig": {
-                        "response_mime_type": "application/json"
-                    }
+                    "contents": [{"parts": [{"text": prompt_text}]}],
+                    "generationConfig": {"response_mime_type": "application/json"}
                 }
-                
                 response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
-                
-                if response.status_code != 200:
-                    print(f"API Error ({model}): {response.status_code} - {response.text}")
-                    continue
-
-                result = response.json()
-                # Parse candidate
-                try:
+                if response.status_code == 200:
+                    result = response.json()
                     raw_text = result['candidates'][0]['content']['parts'][0]['text']
-                    # Clean potential markdown
-                    clean_text = raw_text.replace('```json', '').replace('```', '').strip()
-                    return json.loads(clean_text)
-                except (KeyError, IndexError, json.JSONDecodeError) as e:
-                    print(f"Parsing error for {model}: {e}")
-                    continue
-
+                    return json.loads(raw_text)
+                else:
+                    print(f"API Error ({model}): {response.status_code} - {response.text}")
             except Exception as e:
                 print(f"Request failed for {model}: {e}")
                 time.sleep(1)
+
+        # Try Legacy models (Text Mode) as last resort
+        for model in legacy_models:
+            try:
+                print(f"Trying Gemini Model (Legacy Text Mode): {model}...")
+                url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
+                # No generationConfig for legacy
+                payload = {
+                    "contents": [{"parts": [{"text": prompt_text + "\nIMPORTANT: Return ONLY raw JSON."}]}]
+                }
+                response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+                if response.status_code == 200:
+                    result = response.json()
+                    raw_text = result['candidates'][0]['content']['parts'][0]['text']
+                    # Clean markdown
+                    clean_text = raw_text.replace('```json', '').replace('```', '').strip()
+                    return json.loads(clean_text)
+                else:
+                    print(f"API Error ({model}): {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"Legacy Request failed for {model}: {e}")
         
-        print("All Gemini models failed.")
+        print("!!! ALL GEMINI MODELS FAILED !!!")
         return None
 
 if __name__ == "__main__":
