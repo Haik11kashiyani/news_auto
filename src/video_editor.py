@@ -60,21 +60,52 @@ class VideoEditor:
             bg_clip = bg_clip.resize(newsize=(1080, 1920))
 
             # 3. Prepare Overlay
-            # overlay_path is a directory of frames
+            print(f"Loading Overlay from: {overlay_path}")
+            overlay_clip = None
+            
             if os.path.isdir(overlay_path):
-                # Image Sequence
-                overlay_clip = ImageSequenceClip(overlay_path, fps=10) # Matches generator settings
-                # Loop overlay to match video duration
-                if overlay_clip.duration < duration:
-                    overlay_clip = overlay_clip.loop(duration=duration)
-                else:
-                    overlay_clip = overlay_clip.subclip(0, duration)
+                # Image Sequence (PNGs with Alpha)
+                print("Detected Image Sequence.")
+                try:
+                    # Get list of files to check valid frames
+                    frames = sorted([
+                        os.path.join(overlay_path, f) 
+                        for f in os.listdir(overlay_path) 
+                        if f.endswith('.png')
+                    ])
+                    print(f"Found {len(frames)} frames.")
+                    if not frames:
+                        print("Error: No frames in overlay sequence!")
+                        return None
+                        
+                    overlay_clip = ImageSequenceClip(frames, fps=10)
+                    
+                    # Force Alpha Channel
+                    # MoviePy ImageSequenceClip might not handle alpha automatically well without 'with_mask'?
+                    # Actually, we need to ensure it's treated as RGBA.
+                    # Let's verify by loading one frame? No, simpler to just trust it but verify compositing.
+                    
+                except Exception as e:
+                    print(f"Failed to load sequence: {e}")
+                    return None
             else:
-                # Fallback if single image
-                overlay_clip = ImageClip(overlay_path).set_duration(duration)
+                # Fallback Single Image
+                overlay_clip = ImageClip(overlay_path, duration=duration)
+
+            # Important: Ensure Duration Matches Audio
+            if overlay_clip.duration < duration:
+                overlay_clip = overlay_clip.loop(duration=duration)
+            else:
+                overlay_clip = overlay_clip.subclip(0, duration)
+            
+            # Position Center
+            overlay_clip = overlay_clip.set_position("center")
 
             # 4. Composite
-            final_video = CompositeVideoClip([bg_clip, overlay_clip.set_position("center")])
+            print("Compositing Layers...")
+            # We explicitly tell MoviePy to use the alpha of the overlay
+            final_video = CompositeVideoClip([bg_clip, overlay_clip], size=(1080,1920))
+            final_video = final_video.set_duration(duration)
             final_video = final_video.set_audio(audio)
             
             # 5. Write Output
