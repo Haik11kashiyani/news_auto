@@ -5,55 +5,52 @@ import time
 
 class AudioGenerator:
     def __init__(self):
-        self.api_key = os.getenv("TTS_API_KEY")
-        # Defaulting to Play.ht stub logic, can be swapped for Cartesia
-        self.user_id = os.getenv("PLAYHT_USER_ID") 
-        self.voice_id = "s3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json" # Example Voice ID (Clara)
+        # Optional: Check for Keys, but don't require them.
+        self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
+        self.eleven_voice_id = "nPczCjz86I70pA5ccg71" 
 
     def generate_audio(self, text, output_path="generated/audio.mp3"):
         """
-        Generates audio from text using Play.ht API (v2) or fallback.
+        Generates audio. Defaults to Free gTTS (Google TTS).
         """
-        if not self.api_key:
-            print("TTS_API_KEY missing. Using dummy placeholder audio.")
-            return self._generate_dummy_audio(text, output_path)
+        # 1. ElevenLabs (Only if user explicitly provided key in Secrets)
+        if self.elevenlabs_api_key:
+            return self._generate_elevenlabs_audio(text, output_path)
 
-        url = "https://api.play.ht/api/v2/tts"
+        # 2. Free Fallback (Default)
+        print("Using Free TTS (gTTS)...")
+        return self._generate_free_audio(text, output_path)
+
+    def _generate_elevenlabs_audio(self, text, output_path):
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice_id}"
         headers = {
-            "AUTHORIZATION": self.api_key,
-            "X-USER-ID": self.user_id,
-            "accept": "text/event-stream",
-            "content-type": "application/json"
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": self.elevenlabs_api_key
         }
-        
-        payload = {
+        data = {
             "text": text,
-            "voice": self.voice_id,
-            "output_format": "mp3",
-            "speed": 1.1 # Slightly faster news cadence
+            "model_id": "eleven_monolingual_v1",
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
         }
-
         try:
-            # Note: This is a simplified synchronous blocking call for the stream
-            # In production, we might want to handle the stream properly or use the async client.
-            # For this MVP, we'll assume we can post and get a job or stream.
-            # Play.ht v2 often uses a Job system for full reliability, or SSE for streams.
-            # Here implementing a 'Job' based approach if stream is complex, 
-            # OR simply returning a mock if actual API access isn't verified yet.
-            
-            # For the purpose of this script + robust fallback:
-            print(f"Generating audio for: {text[:30]}...")
-            # Real implementation would go here. 
-            # Returning dummy for now to ensure flow works without live paid keys during dev.
-            return self._generate_dummy_audio(text, output_path)
-            
+            print(f"Generating ElevenLabs audio...")
+            response = requests.post(url, json=data, headers=headers)
+            response.raise_for_status()
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            with open(output_path, 'wb') as f:
+                f.write(response.content)
+            return output_path
         except Exception as e:
-            print(f"Error generating audio: {e}")
-            return None
+            print(f"ElevenLabs failed: {e}. Falling back to free.")
+            return self._generate_free_audio(text, output_path)
 
-    def _generate_dummy_audio(self, text, output_path):
+    def _generate_free_audio(self, text, output_path):
         """
-        Fallback using gTTS (Google Text-to-Speech) which is free.
+        Uses gTTS (Google Text-to-Speech) - Completely Free.
         """
         try:
             from gtts import gTTS
@@ -61,7 +58,8 @@ class AudioGenerator:
             # Ensure directory exists
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
-            tts = gTTS(text=text, lang='en', tld='co.in') # Indian accent English
+            # Indian Accent English (co.in)
+            tts = gTTS(text=text, lang='en', tld='co.in') 
             tts.save(output_path)
             return output_path
         except Exception as e:
