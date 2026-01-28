@@ -32,8 +32,8 @@ class NewsFetcher:
         print("Fetching India News...")
         india_news = self._fetch_news(params={
             "country": "in",
-            "language": "en", 
-            "timeframe": "3"
+            "language": "en"
+            # timeframe removed for Free Tier compatibility (422 Error)
         })
         all_news.extend(india_news)
 
@@ -44,8 +44,8 @@ class NewsFetcher:
         print("Fetching World News...")
         world_news = self._fetch_news(params={
             "category": "world",
-            "language": "en",
-            "timeframe": "3"
+            "language": "en"
+             # timeframe removed for Free Tier compatibility
         })
         all_news.extend(world_news)
 
