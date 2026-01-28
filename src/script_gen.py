@@ -51,43 +51,35 @@ class ScriptGenerator:
         Ensure valid JSON output. Do not include markdown naming like ```json.
         """
 
-        # Models to try (REST API naming convention)
-        # 1. Modern Models (Support JSON Mode)
-        json_models = ["gemini-1.5-flash", "gemini-1.5-pro"]
+        # Define configurations: (Model Name, API Version, Mode)
+        # Gemini 1.5 Flash is Free of Charge (15 RPM) - v1beta
+        # Gemini 1.0 Pro is Free of Charge (15 RPM) - v1beta/v1
+        configurations = [
+            ("gemini-1.5-flash", "v1beta", "json"),
+            ("gemini-1.5-pro", "v1beta", "json"),
+            ("gemini-pro", "v1", "text"),      # Legacy Stable on v1
+            ("gemini-1.0-pro", "v1beta", "text") 
+        ]
         
-        # 2. Legacy/Fallback Models (Text Mode only)
-        legacy_models = ["gemini-pro"]
-
-        # Try JSON models first
-        for model in json_models:
+        for model, version, mode in configurations:
             try:
-                print(f"Trying Gemini Model (JSON Mode): {model}...")
-                url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
-                payload = {
-                    "contents": [{"parts": [{"text": prompt_text}]}],
-                    "generationConfig": {"response_mime_type": "application/json"}
-                }
-                response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
-                if response.status_code == 200:
-                    result = response.json()
-                    raw_text = result['candidates'][0]['content']['parts'][0]['text']
-                    return json.loads(raw_text)
+                print(f"Trying {model} on {version} ({mode} mode)...")
+                base_url = f"https://generativelanguage.googleapis.com/{version}/models"
+                url = f"{base_url}/{model}:generateContent?key={self.api_key}"
+                
+                if mode == "json":
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt_text}]}],
+                        "generationConfig": {"response_mime_type": "application/json"}
+                    }
                 else:
-                    print(f"API Error ({model}): {response.status_code} - {response.text}")
-            except Exception as e:
-                print(f"Request failed for {model}: {e}")
-                time.sleep(1)
-
-        # Try Legacy models (Text Mode) as last resort
-        for model in legacy_models:
-            try:
-                print(f"Trying Gemini Model (Legacy Text Mode): {model}...")
-                url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
-                # No generationConfig for legacy
-                payload = {
-                    "contents": [{"parts": [{"text": prompt_text + "\nIMPORTANT: Return ONLY raw JSON."}]}]
-                }
+                    # Text mode fallback
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt_text + "\nIMPORTANT: Return ONLY raw JSON. No markdown."}]}]
+                    }
+                
                 response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+                
                 if response.status_code == 200:
                     result = response.json()
                     raw_text = result['candidates'][0]['content']['parts'][0]['text']
@@ -96,8 +88,10 @@ class ScriptGenerator:
                     return json.loads(clean_text)
                 else:
                     print(f"API Error ({model}): {response.status_code} - {response.text}")
+                    
             except Exception as e:
-                print(f"Legacy Request failed for {model}: {e}")
+                print(f"Request failed for {model}: {e}")
+                time.sleep(1)
         
         print("!!! ALL GEMINI MODELS FAILED !!!")
         return None
