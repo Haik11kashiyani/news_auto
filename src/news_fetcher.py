@@ -117,6 +117,30 @@ class NewsFetcher:
             print(f"NewsData.io failed: {e}")
             return []
 
+    def _scrape_content(self, url):
+        """
+        Scrapes the main text content from a news URL.
+        """
+        try:
+            from bs4 import BeautifulSoup
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+            resp = requests.get(url, headers=headers, timeout=5)
+            if resp.status_code != 200:
+                return ""
+            
+            soup = BeautifulSoup(resp.content, "html.parser")
+            # Heuristic: Find all p tags, join text. 
+            # Improvement: Limit to main container if possible, but general p tag extraction works well for major sites.
+            paragraphs = soup.find_all("p")
+            text = " ".join([p.get_text().strip() for p in paragraphs])
+            
+            # Clean up whitespace
+            text = " ".join(text.split())
+            return text[:3000] # Limit to avoid token overflow
+        except Exception as e:
+            print(f"Scraping failed for {url}: {e}")
+            return ""
+
     def _fetch_rss_sources(self, feed_urls):
         """
         Fetch news from curated RSS feeds (India + World).
@@ -127,7 +151,7 @@ class NewsFetcher:
             try:
                 print(f"Parsing RSS: {url}")
                 feed = feedparser.parse(url)
-                for entry in feed.entries[:10]:
+                for entry in feed.entries[:3]: # Limit to top 3 to save scraping time
                     link = getattr(entry, "link", None)
                     title = getattr(entry, "title", None)
                     summary = getattr(entry, "summary", "") or ""
@@ -136,6 +160,13 @@ class NewsFetcher:
                     article_id = link
                     if article_id in self.processed_ids:
                         continue
+                        
+                    # SCRAPE FULL CONTENT
+                    print(f"Scraping full content for: {title[:30]}...")
+                    full_text = self._scrape_content(link)
+                    
+                    if not full_text:
+                        full_text = summary # Fallback
 
                     # Try to pull an image URL if present.
                     image_url = None
@@ -147,11 +178,20 @@ class NewsFetcher:
                             if isinstance(l, dict) and l.get("type", "").startswith("image/"):
                                 image_url = l.get("href")
                                 break
+                    
+                    # ALSO try to find og:image if scraping
+                    if not image_url and full_text:
+                         try:
+                            # Quick dirty check if we already parsed soup (optimization: return soup from scrape?)
+                            # For simplicity, we just rely on RSS image for now to save complexity.
+                            pass
+                         except: pass
 
                     std_article = {
                         "article_id": article_id,
                         "title": title,
                         "description": summary[:600],
+                        "full_content": full_text, # NEW FIELD
                         "image_url": image_url,
                         "source_id": "rss",
                         "source_url": link,
