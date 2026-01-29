@@ -80,20 +80,37 @@ class ScriptGenerator:
         description = news_article.get('description', '') or news_article.get('content', '')[:500]
         
         prompt_text = f"""
-        output_json_formatting:
+        You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).
+
+        Strictly output JSON only, no extra text:
         {{
-            "headline": "Viral Title",
-            "voice_script": "Script text...",
-            "ticker_text": "Ticker text...",
-            "viral_description": "Description...",
-            "viral_tags": ["tag1", "tag2"],
-            "video_search_keywords": ["keyword1", "keyword2"]
+            "headline": "Viral, curiosity-driving title (max 70 chars)",
+            "voice_script": "Full spoken script for the anchor, with emotional delivery",
+            "ticker_text": "Short, punchy ticker line that can loop at bottom",
+            "viral_description": "YouTube description with hooks + hashtags",
+            "viral_tags": ["#tag1", "#tag2", "..."],
+            "video_search_keywords": ["short keyword 1", "short keyword 2", "topic keyword 3"]
         }}
-        
-        Task: Create a 45s viral news script for 'Logic Vault'. 
-        News: "{title}". Context: "{description}".
-        Persona: High-energy 2026 anchor.
-        Return ONLY valid JSON.
+
+        Rules for voice_script:
+        - Length: about 40–55 seconds when spoken.
+        - Language style: conversational Indian English / Hinglish (no very hard words), feel like a human TV anchor.
+        - Start with a **strong hook in the first 3 seconds** that makes viewer stop scrolling.
+        - Use **emotion**: urgency, shock, empathy, and suspense where it makes sense.
+        - Break into **short, punchy sentences** (max 12–14 words per sentence).
+        - Add [pause] where natural for drama and breathing.
+        - Do NOT mention that this is AI generated.
+
+        Rules for other fields:
+        - "ticker_text": 1 short line that can repeat in a scrolling bar, all caps, very punchy.
+        - "viral_description": 2–3 lines, first line is hook, then 4–6 hashtags.
+        - "viral_tags": only include tags useful for YouTube Shorts news (e.g. #breakingnews, #india, #shorts, #news, topic tags).
+        - "video_search_keywords": 3–6 compact keywords that describe the visual/story for stock footage search.
+
+        News Article Title: "{title}"
+        News Context (summary or description): "{description}"
+
+        Now return ONLY the JSON object as specified above.
         """
 
         # 3. Call API
