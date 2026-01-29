@@ -141,4 +141,4 @@ class AudioGenerator:
 
 if __name__ == "__main__":
     gen = AudioGenerator()
-    gen.generate_audio("This is a test broadcast from Logic Vault.", "test_audio.mp3")
+    gen.generate_audio("This is a test broadcast from Newsroom.", "test_audio.mp3")
