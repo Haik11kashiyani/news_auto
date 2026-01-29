@@ -101,7 +101,7 @@ Strictly output JSON only, no extra text:
     "viral_description": "YouTube description with hooks + hashtags",
     "viral_tags": ["#tag1", "#tag2", "..."],
     "video_search_keywords": ["short keyword 1", "short keyword 2", "topic keyword 3"]
-}
+}}
 
 Rules for voice_script:
 - Length: about 40–55 seconds when spoken.
