@@ -1,3 +1,11 @@
+import os
+import requests
+import time
+from PIL import Image
+from playwright.sync_api import sync_playwright
+import urllib.parse
+
+class VisualGenerator:
     # EMBEDDED TEMPLATE TO REMOVE FILE I/O RISKS
     HTML_TEMPLATE = """
 <!DOCTYPE html>
