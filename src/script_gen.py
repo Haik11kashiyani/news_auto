@@ -86,7 +86,8 @@ class ScriptGenerator:
         
         # 2. Build Prompt
         title = news_article.get('title', 'Breaking News')
-        description = news_article.get('description', '') or news_article.get('content', '')[:500]
+        # PREFER FULL SCRAPED CONTENT
+        description = news_article.get('full_content', '') or news_article.get('description', '') or news_article.get('content', '')[:500]
         
         prompt_text = f"""
 You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).

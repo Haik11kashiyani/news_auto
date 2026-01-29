@@ -6,3 +6,4 @@ Pillow<10.0.0
 gTTS
 edge-tts
 feedparser
+beautifulsoup4
