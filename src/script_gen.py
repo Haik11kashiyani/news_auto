@@ -9,12 +9,17 @@ class ScriptGenerator:
         if not self.api_key:
             print("Warning: GEMINI_API_KEY not found.")
         self.base_url = "https://generativelanguage.googleapis.com"
+        # If we hit quota / config issues, we can short‑circuit further Gemini calls
+        # in this run and rely on the local backup template instead.
+        self.gemini_disabled = False
 
     def _discover_model(self):
         """
         Dynamically asks Gemini API: "What models can I use?"
         Returns the best available model name.
         """
+        if self.gemini_disabled or not self.api_key:
+            return None
         try:
             # We check v1beta first as it has the newer models
             url = f"{self.base_url}/v1beta/models?key={self.api_key}"
@@ -65,6 +70,10 @@ class ScriptGenerator:
             return None
 
     def generate_script(self, news_article):
+        # If Gemini is disabled (quota hit or no key), go straight to backup.
+        if self.gemini_disabled or not self.api_key:
+            return self._backup_template(news_article)
+
         # 1. Discover a working model
         model_info = self._discover_model()
         
@@ -134,6 +143,11 @@ Now return ONLY the JSON object as specified above.
                 raw_text = result['candidates'][0]['content']['parts'][0]['text']
                 clean_text = raw_text.replace('```json', '').replace('```', '').strip()
                 return json.loads(clean_text)
+            elif response.status_code == 429:
+                # Quota exhausted – log once and disable Gemini for the rest of this run.
+                self.gemini_disabled = True
+                print("Gemini quota exhausted (429). Falling back to local backup template for this and future calls in this run.")
+                return self._backup_template(news_article)
             else:
                 print(f"Generation failed ({response.status_code}): {response.text}")
                 return self._backup_template(news_article)
@@ -166,6 +180,9 @@ Now return ONLY the JSON object as specified above.
         """
         if not articles:
             return None
+        if self.gemini_disabled or not self.api_key:
+            print("Gemini disabled or no API key; skipping AI article ranking.")
+            return None
         model_info = self._discover_model()
         if not model_info:
             print("No model for article ranking, falling back to random.")
@@ -196,6 +213,11 @@ Return ONLY JSON of the form: {{"chosen_index": <NUMBER>}} with no extra text.
                 "contents": [{"parts": [{"text": prompt}]}],
             }
             resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+            if resp.status_code == 429:
+                # Quota exhausted for ranking as well – disable Gemini to avoid noisy logs.
+                self.gemini_disabled = True
+                print("Gemini quota exhausted during article ranking (429). Skipping AI ranking for this and future runs in this process.")
+                return None
             if resp.status_code != 200:
                 print(f"Article ranking failed: {resp.status_code} - {resp.text}")
                 return None
