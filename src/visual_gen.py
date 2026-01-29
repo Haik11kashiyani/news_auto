@@ -16,15 +16,17 @@ class VisualGenerator:
     <title>News Overlay Style 3</title>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; width: 1080px; height: 1920px; background: transparent; font-family: 'Chakra Petch', sans-serif; overflow: hidden; display: grid; grid-template-rows: 150px 1fr 200px; }
-        .header { background: #000; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; border-bottom: 5px solid #00ffcc; box-shadow: 0 10px 30px rgba(0, 255, 204, 0.2); }
-        .brand { font-size: 48px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; }
+        body { margin: 0; padding: 0; width: 1080px; height: 1920px; background: transparent; font-family: 'Chakra Petch', sans-serif; overflow: hidden; display: grid; grid-template-rows: 150px 1fr 220px; }
+        .header { background: rgba(0,0,0,0.95); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; border-bottom: 4px solid #00ffcc; box-shadow: 0 10px 30px rgba(0, 255, 204, 0.25); }
+        .brand { font-size: 46px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; }
         .brand span { color: #00ffcc; }
         .live-badge { background: #ff0033; color: white; padding: 10px 20px; font-size: 24px; font-weight: 700; border-radius: 5px; animation: pulse 2s infinite; }
         .content { position: relative; }
-        .sidebar-card { position: absolute; right: 40px; top: 100px; width: 350px; background: rgba(0, 0, 0, 0.9); border: 2px solid #00ffcc; border-radius: 0 20px 0 20px; padding: 30px; color: white; }
-        .topic { font-family: 'Roboto Condensed', sans-serif; font-size: 32px; color: #00ffcc; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .headline-main { font-size: 36px; line-height: 1.3; }
+        /* Dark glass layer so text always readable over any video */
+        .glass-backdrop { position: absolute; left: 0; right: 0; bottom: 0; top: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.7) 100%); }
+        .headline-box { position: absolute; left: 40px; right: 40px; bottom: 260px; background: rgba(0,0,0,0.85); border-left: 6px solid #00ffcc; padding: 26px 30px 22px; color: #ffffff; border-radius: 10px; box-shadow: 0 0 40px rgba(0,0,0,0.7); }
+        .headline-label { font-family: 'Roboto Condensed', sans-serif; font-size: 26px; letter-spacing: 3px; color: #ffcc00; margin-bottom: 8px; text-transform: uppercase; }
+        .headline-main { font-size: 40px; line-height: 1.25; font-weight: 700; }
         .footer { background: linear-gradient(0deg, #000 0%, rgba(0,0,0,0.8) 100%); display: flex; flex-direction: column; justify-content: flex-end; }
         .ticker-wrap { width: 100%; height: 80px; background: #00ffcc; overflow: hidden; display: flex; align-items: center; }
         .ticker { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker 20s linear infinite; font-family: 'Roboto Condensed', sans-serif; font-size: 40px; font-weight: 700; color: #000; text-transform: uppercase; }
@@ -38,21 +40,25 @@ class VisualGenerator:
         <div class="live-badge">LIVE</div>
     </div>
     <div class="content">
-        <div class="sidebar-card">
-            <div class="topic">DEVELOPING STORY</div>
+        <div class="glass-backdrop"></div>
+        <div class="headline-box">
+            <div class="headline-label" id="headline-label">TOP STORY</div>
             <div class="headline-main" id="headline-display">Data Loading...</div>
         </div>
     </div>
     <div class="footer">
         <div class="ticker-wrap">
-            <div class="ticker" id="ticker-display">BREAKING NEWS /// UPDATES COMING IN /// STAY TUNED ///</div>
+            <div class="ticker" id="ticker-display">NEWS /// LIVE UPDATE /// STAY TUNED ///</div>
         </div>
     </div>
     <script>
-        function setTickerText(headline, ticker) {
+        function setOverlayText(headline, ticker, label) {
             document.getElementById('headline-display').innerText = headline;
             const fullTicker = ticker + "  ///  " + ticker + "  ///  " + ticker;
             document.getElementById('ticker-display').innerText = fullTicker;
+            if (label && label.trim().length > 0) {
+                document.getElementById('headline-label').innerText = label.toUpperCase();
+            }
         }
     </script>
 </body>
@@ -69,6 +75,24 @@ class VisualGenerator:
                 shutil.rmtree(self.generated_dir)
             except: pass
         os.makedirs(self.generated_dir, exist_ok=True)
+
+    def _build_label(self, headline: str) -> str:
+        """
+        Build a small dynamic label based on the headline content.
+        This keeps overlay feeling alive instead of a static 'BREAKING NEWS'.
+        """
+        if not headline:
+            return "TOP STORY"
+        h = headline.upper()
+        if "BREAKING" in h:
+            return "BREAKING"
+        if "ALERT" in h:
+            return "ALERT"
+        if "UPDATE" in h:
+            return "BIG UPDATE"
+        if "EXCLUSIVE" in h:
+            return "EXCLUSIVE"
+        return "TOP STORY"
 
     def get_background_video(self, news_article, keywords):
         # ... (rest of get_background_video kept same, just ensuring class structure is valid)
@@ -151,10 +175,12 @@ class VisualGenerator:
             
             # Inject Usage of new function signature in HTML
             # Escape quotes to prevent JS errors
-            safe_headline = headline.replace("'", "\\'").replace('"', '\\"')
-            safe_ticker = ticker_text.replace("'", "\\'").replace('"', '\\"')
+            safe_headline = (headline or "Top Story").replace("'", "\\'").replace('"', '\\"')
+            safe_ticker = (ticker_text or "LATEST NEWS").replace("'", "\\'").replace('"', '\\"')
+            label = self._build_label(headline or "")
+            safe_label = label.replace("'", "\\'").replace('"', '\\"')
             
-            page.evaluate(f"setTickerText('{safe_headline}', '{safe_ticker}')")
+            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_ticker}', '{safe_label}')")
             
             # Wait for layout/fonts
             time.sleep(2)

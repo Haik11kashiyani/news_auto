@@ -1,5 +1,5 @@
 from moviepy.editor import *
-from moviepy.video.fx.all import resize, crop
+from moviepy.video.fx import all as vfx
 import os
 import random
 
@@ -42,6 +42,12 @@ class VideoEditor:
                 # Simple zoom effect: 1.0 -> 1.1
                 bg_clip = img.resize(lambda t: 1 + 0.02 * t) 
             
+            # Subtle grading to feel more cinematic and make text pop
+            try:
+                bg_clip = bg_clip.fx(vfx.colorx, 0.95)  # slightly darker
+            except Exception:
+                pass
+
             # Crop to 9:16 (Vertical) - Center Crop
             # Assuming 1080x1920 target
             w, h = bg_clip.size
