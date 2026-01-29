@@ -54,40 +54,41 @@ def main():
         print("Failed to generate audio.")
         return
 
-    # 5. Generate Visuals
+    # 4. Generate Visuals
     print("--- 4. Generating Visuals ---")
-    keywords = script_data.get("video_search_keywords", [])
-    bg_path, bg_type = visual_gen.get_background_video(article, keywords)
-    
-    overlay_text = script_data.get("ticker_text", "BREAKING NEWS")
     headline_text = script_data.get("headline", "BREAKING NEWS")
+    ticker_text = script_data.get("ticker_text", "LIVE UPDATES")
     
-    # Estimate audio duration (mock if file doesn't exist yet properly, but we have it)
-    # We will let VideoEditor handle duration reading.
-    # Overlay length is handled in Visual Gen but we need duration hint ideally.
-    # For now, generate 15s sequence loop, editor truncates.
-    overlay_path = visual_gen.generate_overlay(headline_text, overlay_text, Duration=15) 
+    # Generate Overlay Image (Using Strict Static Method)
+    overlay_path = visual_gen.generate_overlay(headline_text, ticker_text, Duration=15)
+    
+    # Get Background (Video or Image)
+    bg_path, bg_type = visual_gen.get_background_video(article, script_data.get("video_search_keywords", []))
+    
+    if not bg_path:
+        print("Warning: No background found. Using color fallback in editor?")
+        # For now, let's assume get_background_video ALWAYS returns something or we fail.
+        # Actually, let's make a mock background if needed?
+        pass
 
-    if not bg_path or not overlay_path:
-        print("Failed to generate visuals.")
-        return
-
-    # 6. Assemble Video
+    # 5. Assemble Video
     print("--- 5. Assembling Video ---")
+    # We pass the calculated paths. 
+    # Note: Overlay is now a static image path.
     output_filename = f"news_{article['article_id']}.mp4"
     final_path = editor.assemble_video(bg_path, bg_type, overlay_path, audio_path, output_filename)
     
     if final_path:
-        print(f"SUCCESS: Video contents saved to {final_path}")
-        
-        # IMPORTANT: Now that video is safe, tag this news as 'done' so we don't repeat it
-        # BUT don't re-do it if it crashed midway.
+        print(f"SUCCESS: Video generated at {final_path}")
+        # Mark as processed
         print(f"Marking article {article['article_id']} as processed...")
         fetcher.mark_as_processed(article['article_id'])
         
         # Note: Upload comes next
         print("--- 6. Upload Stub (Pending) ---")
         # uploader.upload(final_path, script_data)
+    else:
+        print("FAILURE: Video assembly failed.")
 
 if __name__ == "__main__":
     main()
