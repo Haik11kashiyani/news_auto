@@ -90,6 +90,7 @@ class VideoEditor:
             final_video = final_video.set_audio(audio)
             
             # 5. Write Output
+            os.makedirs(self.output_dir, exist_ok=True)
             output_path = os.path.join(self.output_dir, output_filename)
             final_video.write_videofile(
                 output_path, 
