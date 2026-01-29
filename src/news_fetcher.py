@@ -44,35 +44,10 @@ class NewsFetcher:
         """
         Fetches fresh news.
         Priority:
-          1) World News API (Realtime)
-          2) NewsData.io (India + World)
-          3) Curated RSS feeds (India + World)
+          RSS-only (India + World) [temporarily for testing]
         """
-        all_news = []
-        
-        # 1. Try World News API (Best for Realtime + Images)
-        if self.worldnews_api_key:
-            print("Fetching from World News API (Realtime)...")
-            wn_news = self._fetch_worldnews()
-            all_news.extend(wn_news)
-        
-        # 2. NewsData.io (India + World)
-        if self.newsdata_api_key:
-            print("Fetching from NewsData.io...")
-            # Scope 1: India
-            india_news = self._fetch_newsdata(params={"country": "in", "language": "en"})
-            all_news.extend(india_news)
-            time.sleep(1)
-            # Scope 2: World
-            world_news = self._fetch_newsdata(params={"category": "world", "language": "en"})
-            all_news.extend(world_news)
-
-        # 3. RSS feeds (India + World) – fully free, no key.
-        print("Fetching from RSS feeds (India + World)...")
-        rss_news = self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_world)
-        all_news.extend(rss_news)
-
-        return all_news
+        print("Fetching from RSS feeds only (India + World)...")
+        return self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_world)
 
     def mark_as_processed(self, article_id):
         """
