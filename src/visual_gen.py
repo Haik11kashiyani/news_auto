@@ -24,9 +24,10 @@ class VisualGenerator:
         .content { position: relative; }
         /* Dark glass layer so text always readable over any video */
         .glass-backdrop { position: absolute; left: 0; right: 0; bottom: 0; top: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.7) 100%); }
-        .headline-box { position: absolute; left: 40px; right: 40px; bottom: 260px; background: rgba(0,0,0,0.85); border-left: 6px solid #00ffcc; padding: 26px 30px 22px; color: #ffffff; border-radius: 10px; box-shadow: 0 0 40px rgba(0,0,0,0.7); }
-        .headline-label { font-family: 'Roboto Condensed', sans-serif; font-size: 26px; letter-spacing: 3px; color: #ffcc00; margin-bottom: 8px; text-transform: uppercase; }
-        .headline-main { font-size: 40px; line-height: 1.25; font-weight: 700; }
+        .headline-box { position: absolute; left: 40px; right: 40px; bottom: 260px; background: rgba(0,0,0,0.85); border-left: 6px solid #00ffcc; padding: 22px 30px 18px; color: #ffffff; border-radius: 10px; box-shadow: 0 0 40px rgba(0,0,0,0.7); }
+        .headline-label { font-family: 'Roboto Condensed', sans-serif; font-size: 24px; letter-spacing: 3px; color: #ffcc00; margin-bottom: 4px; text-transform: uppercase; }
+        .headline-main { font-size: 34px; line-height: 1.25; font-weight: 700; margin-bottom: 4px; }
+        .headline-sub { font-size: 24px; line-height: 1.3; color: #d0d0d0; max-height: 3.2em; overflow: hidden; }
         .footer { background: linear-gradient(0deg, #000 0%, rgba(0,0,0,0.8) 100%); display: flex; flex-direction: column; justify-content: flex-end; }
         .ticker-wrap { width: 100%; height: 80px; background: #00ffcc; overflow: hidden; display: flex; align-items: center; }
         .ticker { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker 20s linear infinite; font-family: 'Roboto Condensed', sans-serif; font-size: 40px; font-weight: 700; color: #000; text-transform: uppercase; }
@@ -44,6 +45,7 @@ class VisualGenerator:
         <div class="headline-box">
             <div class="headline-label" id="headline-label">TOP STORY</div>
             <div class="headline-main" id="headline-display">Data Loading...</div>
+            <div class="headline-sub" id="headline-sub">Loading summary...</div>
         </div>
     </div>
     <div class="footer">
@@ -52,8 +54,13 @@ class VisualGenerator:
         </div>
     </div>
     <script>
-        function setOverlayText(headline, ticker, label) {
+        function setOverlayText(headline, ticker, label, subline) {
             document.getElementById('headline-display').innerText = headline;
+            if (subline && subline.trim().length > 0) {
+                document.getElementById('headline-sub').innerText = subline;
+            } else {
+                document.getElementById('headline-sub').innerText = "";
+            }
             const fullTicker = ticker + "  ///  " + ticker + "  ///  " + ticker;
             document.getElementById('ticker-display').innerText = fullTicker;
             if (label && label.trim().length > 0) {
@@ -160,7 +167,7 @@ class VisualGenerator:
             print(f"Download failed for {url}: {e}")
             return None
 
-    def generate_overlay(self, headline, ticker_text, Duration=10):
+    def generate_overlay(self, headline, ticker_text, sub_headline=None, Duration=10):
         """
         Captures the premium Style 3 overlay using EMBEDDED HTML.
         """
@@ -177,10 +184,11 @@ class VisualGenerator:
             # Escape quotes to prevent JS errors
             safe_headline = (headline or "Top Story").replace("'", "\\'").replace('"', '\\"')
             safe_ticker = (ticker_text or "LATEST NEWS").replace("'", "\\'").replace('"', '\\"')
+            safe_sub = (sub_headline or "").replace("'", "\\'").replace('"', '\\"')
             label = self._build_label(headline or "")
             safe_label = label.replace("'", "\\'").replace('"', '\\"')
             
-            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_ticker}', '{safe_label}')")
+            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_ticker}', '{safe_label}', '{safe_sub}')")
             
             # Wait for layout/fonts
             time.sleep(2)
