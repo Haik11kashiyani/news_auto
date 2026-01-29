@@ -127,14 +127,21 @@ class VisualGenerator:
             
             page.evaluate(f"setTickerText('{safe_headline}', '{safe_ticker}')")
             
+            # IMPORTANT: Wait for resources (Fonts) to load!
+            print("DEBUG: Waiting for network idle (fonts)...")
+            page.wait_for_load_state("networkidle")
+            
+            # Extra safety buffer for any CSS transitions/layout
+            time.sleep(2) 
+            
             # Capture Frames (10fps)
             fps = 10 
             total_frames = int(Duration * fps)
             
-            print("Rendering Overlay Sequence...")
+            print(f"Rendering Overlay Sequence ({total_frames} frames)...")
             for i in range(total_frames):
                 page.screenshot(path=os.path.join(output_seq_dir, f"frame_{i:03d}.png"), omit_background=True)
-                
+            
             browser.close()
             
         return output_seq_dir
