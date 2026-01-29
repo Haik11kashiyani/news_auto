@@ -2,6 +2,7 @@ import requests
 import os
 import json
 import time
+import feedparser
 
 class NewsFetcher:
     def __init__(self):
@@ -9,6 +10,22 @@ class NewsFetcher:
         self.worldnews_api_key = os.getenv("WORLDNEWS_API_KEY")
         self.processed_ids_file = "processed_ids.txt"
         self.processed_ids = self._load_processed_ids()
+        # Curated free RSS feeds: mix of India + World.
+        # Note: we only use title/summary/link as signals; we don't re-host full articles.
+        self.rss_feeds_india = [
+            "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+            "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms",  # India
+            "https://feeds.feedburner.com/ndtvnews-top-stories",
+            "https://indianexpress.com/feed/",
+            "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
+        ]
+        self.rss_feeds_world = [
+            "https://feeds.bbci.co.uk/news/world/rss.xml",
+            "https://feeds.bbci.co.uk/news/world/asia/india/rss.xml",
+            "https://rss.cnn.com/rss/edition_world.rss",
+            "https://rss.cnn.com/rss/edition_asia.rss",
+            "https://www.aljazeera.com/xml/rss/all.xml",
+        ]
 
     def _load_processed_ids(self):
         if not os.path.exists(self.processed_ids_file):
@@ -25,7 +42,11 @@ class NewsFetcher:
 
     def fetch_fresh_news(self):
         """
-        Fetches fresh news. Priority: World News API (Realtime) -> NewsData.io (Backup).
+        Fetches fresh news.
+        Priority:
+          1) World News API (Realtime)
+          2) NewsData.io (India + World)
+          3) Curated RSS feeds (India + World)
         """
         all_news = []
         
@@ -33,10 +54,9 @@ class NewsFetcher:
         if self.worldnews_api_key:
             print("Fetching from World News API (Realtime)...")
             wn_news = self._fetch_worldnews()
-            if wn_news:
-                return wn_news
+            all_news.extend(wn_news)
         
-        # 2. Fallback to NewsData.io
+        # 2. NewsData.io (India + World)
         if self.newsdata_api_key:
             print("Fetching from NewsData.io...")
             # Scope 1: India
@@ -46,7 +66,12 @@ class NewsFetcher:
             # Scope 2: World
             world_news = self._fetch_newsdata(params={"category": "world", "language": "en"})
             all_news.extend(world_news)
-            
+
+        # 3. RSS feeds (India + World) – fully free, no key.
+        print("Fetching from RSS feeds (India + World)...")
+        rss_news = self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_world)
+        all_news.extend(rss_news)
+
         return all_news
 
     def mark_as_processed(self, article_id):
@@ -116,6 +141,50 @@ class NewsFetcher:
         except Exception as e:
             print(f"NewsData.io failed: {e}")
             return []
+
+    def _fetch_rss_sources(self, feed_urls):
+        """
+        Fetch news from curated RSS feeds (India + World).
+        We only use title + summary + link; full article stays on source site.
+        """
+        articles = []
+        for url in feed_urls:
+            try:
+                print(f"Parsing RSS: {url}")
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:10]:
+                    link = getattr(entry, "link", None)
+                    title = getattr(entry, "title", None)
+                    summary = getattr(entry, "summary", "") or ""
+                    if not title or not link:
+                        continue
+                    article_id = link
+                    if article_id in self.processed_ids:
+                        continue
+
+                    # Try to pull an image URL if present.
+                    image_url = None
+                    media_content = getattr(entry, "media_content", None)
+                    if media_content and isinstance(media_content, list):
+                        image_url = media_content[0].get("url")
+                    if not image_url and hasattr(entry, "links"):
+                        for l in entry.links:
+                            if isinstance(l, dict) and l.get("type", "").startswith("image/"):
+                                image_url = l.get("href")
+                                break
+
+                    std_article = {
+                        "article_id": article_id,
+                        "title": title,
+                        "description": summary[:600],
+                        "image_url": image_url,
+                        "source_id": "rss",
+                        "source_url": link,
+                    }
+                    articles.append(std_article)
+            except Exception as e:
+                print(f"RSS fetch failed for {url}: {e}")
+        return articles
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
