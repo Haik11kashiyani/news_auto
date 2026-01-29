@@ -94,11 +94,13 @@ def main():
     # Note: Overlay is now a static image path.
     # ADD TIMESTAMP TO ENSURE UNIQUE FILE
     unique_ts = int(time.time())
-    output_filename = f"news_{article['article_id']}_{unique_ts}.mp4"
+    # Sanitize article_id to ensure it's a valid filename (remove / : etc)
+    safe_id = "".join([c if c.isalnum() else "_" for c in str(article['article_id'])])
+    output_filename = f"news_{safe_id}_{unique_ts}.mp4"
     final_path = editor.assemble_video(bg_path, bg_type, overlay_path, audio_path, output_filename)
     
-    if final_video:
-        print(f"SUCCESS: Video generated at {final_video}")
+    if final_path:
+        print(f"SUCCESS: Video generated at {final_path}")
         # Mark as processed
         print(f"Marking article {article['article_id']} as processed...")
         fetcher.mark_as_processed(article['article_id'])
