@@ -80,37 +80,42 @@ class ScriptGenerator:
         description = news_article.get('description', '') or news_article.get('content', '')[:500]
         
         prompt_text = f"""
-        You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).
+You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).
 
-        Strictly output JSON only, no extra text:
-        {{
-            "headline": "Viral, curiosity-driving title (max 70 chars)",
-            "voice_script": "Full spoken script for the anchor, with emotional delivery",
-            "ticker_text": "Short, punchy ticker line that can loop at bottom",
-            "viral_description": "YouTube description with hooks + hashtags",
-            "viral_tags": ["#tag1", "#tag2", "..."],
-            "video_search_keywords": ["short keyword 1", "short keyword 2", "topic keyword 3"]
-        }}
+Strictly output JSON only, no extra text:
+{{
+    "headline": "Viral, curiosity-driving title (max 70 chars)",
+    "sub_headline": "One-line summary that can sit under the headline on screen",
+    "voice_script": "Full spoken script for the anchor, with emotional delivery",
+    "ticker_text": "Short, punchy ticker line that can loop at bottom",
+    "viral_description": "YouTube description with hooks + hashtags",
+    "viral_tags": ["#tag1", "#tag2", "..."],
+    "video_search_keywords": ["short keyword 1", "short keyword 2", "topic keyword 3"]
+}}
 
-        Rules for voice_script:
-        - Length: about 40–55 seconds when spoken.
-        - Language style: conversational Indian English / Hinglish (no very hard words), feel like a human TV anchor.
-        - Start with a **strong hook in the first 3 seconds** that makes viewer stop scrolling.
-        - Use **emotion**: urgency, shock, empathy, and suspense where it makes sense.
-        - Break into **short, punchy sentences** (max 12–14 words per sentence).
-        - Add [pause] where natural for drama and breathing.
-        - Do NOT mention that this is AI generated.
+Rules for voice_script:
+- Length: about 40–55 seconds when spoken.
+- Language style: conversational Indian English / Hinglish (no very hard words), feel like a human TV anchor.
+- Start with a **strong hook in the first 3 seconds** that makes viewer stop scrolling.
+- Use **emotion**: urgency, shock, empathy, and suspense where it makes sense.
+- Break into **short, punchy sentences** (max 12–14 words per sentence).
+- Add [pause] where natural for drama and breathing.
+- Do NOT mention that this is AI generated.
 
-        Rules for other fields:
-        - "ticker_text": 1 short line that can repeat in a scrolling bar, all caps, very punchy.
-        - "viral_description": 2–3 lines, first line is hook, then 4–6 hashtags.
-        - "viral_tags": only include tags useful for YouTube Shorts news (e.g. #breakingnews, #india, #shorts, #news, topic tags).
-        - "video_search_keywords": 3–6 compact keywords that describe the visual/story for stock footage search.
+Rules for on-screen text:
+- "headline": must be short, clickable and curiosity-driven, max ~70 characters.
+- "sub_headline": 1 compact sentence (max ~90 characters) that gives clarity about what exactly happened.
+- "ticker_text": 1 short line that can repeat in a scrolling bar, ALL CAPS, very punchy.
 
-        News Article Title: "{title}"
-        News Context (summary or description): "{description}"
+Rules for other fields:
+- "viral_description": 2–3 lines, first line is hook, then 4–6 hashtags.
+- "viral_tags": only include tags useful for YouTube Shorts news (e.g. #breakingnews, #india, #shorts, #news, topic tags).
+- "video_search_keywords": 3–6 compact keywords that describe the visual/story for stock footage search.
 
-        Now return ONLY the JSON object as specified above.
+News Article Title: "{title}"
+News Context (summary or description): "{description}"
+
+Now return ONLY the JSON object as specified above.
         """
 
         # 3. Call API
@@ -143,14 +148,68 @@ class ScriptGenerator:
         """
         print("Using BACKUP TEMPLATE script.")
         title = article.get('title', 'Breaking News')
+        full_title = str(title)
         return {
-            "headline": f"Must Watch: {title[:30]}...",
-            "voice_script": f"Breaking news from Logic Vault. {title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
-            "ticker_text": f"BREAKING: {title}",
-            "viral_description": f"Breaking news: {title} #shorts #news",
+            "headline": f"Must Watch: {full_title}",
+            "sub_headline": full_title,
+            "voice_script": f"Breaking news from Logic Vault. {full_title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
+            "ticker_text": f"BREAKING: {full_title}",
+            "viral_description": f"Breaking news: {full_title} #shorts #news",
             "viral_tags": ["#breaking", "#news"],
             "video_search_keywords": ["news", "breaking"]
         }
+
+    def pick_best_article(self, articles):
+        """
+        Uses Gemini to choose the most viral/engaging article out of a small list.
+        Returns the chosen article dict, or None on failure.
+        """
+        if not articles:
+            return None
+        model_info = self._discover_model()
+        if not model_info:
+            print("No model for article ranking, falling back to random.")
+            return None
+        model_name, version = model_info
+
+        # Build compact listing for prompt
+        items = []
+        for idx, art in enumerate(articles):
+            t = art.get("title", "") or ""
+            d = art.get("description", "") or art.get("content", "") or ""
+            d_short = d[:160].replace("\n", " ")
+            items.append(f"{idx}: {t} | {d_short}")
+        joined = "\n".join(items)
+
+        prompt = f"""
+You are helping choose which news story will go most viral as a short vertical video for 'Logic Vault'.
+
+Here are candidate stories (index: title | short description):
+{joined}
+
+Think about which one is the most emotionally engaging, surprising, or highly relevant for a general audience today.
+Return ONLY JSON of the form: {{"chosen_index": <NUMBER>}} with no extra text.
+        """
+        try:
+            url = f"{self.base_url}/{version}/models/{model_name}:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+            }
+            resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+            if resp.status_code != 200:
+                print(f"Article ranking failed: {resp.status_code} - {resp.text}")
+                return None
+            data = resp.json()
+            raw = data["candidates"][0]["content"]["parts"][0]["text"]
+            clean = raw.replace("```json", "").replace("```", "").strip()
+            obj = json.loads(clean)
+            idx = int(obj.get("chosen_index", 0))
+            if 0 <= idx < len(articles):
+                return articles[idx]
+            return None
+        except Exception as e:
+            print(f"Article ranking exception: {e}")
+            return None
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

@@ -32,18 +32,23 @@ def main():
         print("No new news to process.")
         return
 
-    # RANDOM SELECTION: Pick one from the Top 5 to ensure variety on each run
-    # (Since GitHub Actions might re-fetch the same list)
-    # Filter out None/Empty if any
+    # 2b. Build small pool of candidates (top 5) and let Gemini pick the most
+    #     viral/engaging one, instead of pure random.
+    #     Filter out None/Empty if any.
     valid_items = [n for n in news_items if n]
     selection_pool = valid_items[:5] if len(valid_items) >= 5 else valid_items
     
     if not selection_pool:
          print("No valid news items.")
          return
-
-    article = random.choice(selection_pool)
-    print(f"Processing (Random Pick): {article.get('title')}")
+    
+    # Try AI-driven ranking first
+    article = script_gen.pick_best_article(selection_pool)
+    if article:
+        print(f"Processing (AI-picked top story): {article.get('title')}")
+    else:
+        article = random.choice(selection_pool)
+        print(f"Processing (Random fallback): {article.get('title')}")
 
     # 3. Generate Content
     print("--- 2. Generating Script ---")
@@ -68,9 +73,10 @@ def main():
     print("--- 4. Generating Visuals ---")
     headline_text = script_data.get("headline", "BREAKING NEWS")
     ticker_text = script_data.get("ticker_text", "LIVE UPDATES")
+    sub_headline = script_data.get("sub_headline") or script_data.get("viral_description", "").split("\n")[0][:110]
     
     # Generate Overlay Image (Using Strict Static Method)
-    overlay_path = visual_gen.generate_overlay(headline_text, ticker_text, Duration=15)
+    overlay_path = visual_gen.generate_overlay(headline_text, ticker_text, sub_headline, Duration=15)
     
     # Get Background (Video or Image)
     bg_path, bg_type = visual_gen.get_background_video(article, script_data.get("video_search_keywords", []))
