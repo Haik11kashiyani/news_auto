@@ -9,6 +9,8 @@ from src.audio_gen import AudioGenerator
 from src.visual_gen import VisualGenerator
 from src.video_editor import VideoEditor
 
+import random
+
 def main():
     load_dotenv()
     
@@ -30,10 +32,18 @@ def main():
         print("No new news to process.")
         return
 
-    # Just take 1 for now (Dual Scope means we might get India or World, taking first fresh one)
-    # Ideally prioritize India then World, but list is already ordered by fetch
-    article = news_items[0] 
-    print(f"Processing: {article.get('title')}")
+    # RANDOM SELECTION: Pick one from the Top 5 to ensure variety on each run
+    # (Since GitHub Actions might re-fetch the same list)
+    # Filter out None/Empty if any
+    valid_items = [n for n in news_items if n]
+    selection_pool = valid_items[:5] if len(valid_items) >= 5 else valid_items
+    
+    if not selection_pool:
+         print("No valid news items.")
+         return
+
+    article = random.choice(selection_pool)
+    print(f"Processing (Random Pick): {article.get('title')}")
 
     # 3. Generate Content
     print("--- 2. Generating Script ---")
@@ -75,7 +85,9 @@ def main():
     print("--- 5. Assembling Video ---")
     # We pass the calculated paths. 
     # Note: Overlay is now a static image path.
-    output_filename = f"news_{article['article_id']}.mp4"
+    # ADD TIMESTAMP TO ENSURE UNIQUE FILE
+    unique_ts = int(time.time())
+    output_filename = f"news_{article['article_id']}_{unique_ts}.mp4"
     final_path = editor.assemble_video(bg_path, bg_type, overlay_path, audio_path, output_filename)
     
     if final_path:
