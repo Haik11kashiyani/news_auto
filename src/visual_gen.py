@@ -118,33 +118,24 @@ class VisualGenerator:
             
             # DIRECT INJECTION - 100% Reliable
             print("DEBUG: Setting page content directly...")
-            page.set_content(html_content)
+            page.set_content(html_content, wait_until="networkidle")
             
-            # Inject Usage of new function signature in HTML
-            # Escape quotes to prevent JS errors
-            safe_headline = headline.replace("'", "\\'").replace('"', '\\"')
-            safe_ticker = ticker_text.replace("'", "\\'").replace('"', '\\"')
+            # Wait for layout/fonts
+            time.sleep(2)
+
+            # Capture Single Static Overlay (Robust)
+            output_image_path = os.path.join(self.generated_dir, "overlay_final.png")
+            print(f"Capturing Static Overlay to {output_image_path}...")
             
-            page.evaluate(f"setTickerText('{safe_headline}', '{safe_ticker}')")
+            page.screenshot(path=output_image_path, omit_background=True)
             
-            # IMPORTANT: Wait for resources (Fonts) to load!
-            print("DEBUG: Waiting for network idle (fonts)...")
-            page.wait_for_load_state("networkidle")
-            
-            # Extra safety buffer for any CSS transitions/layout
-            time.sleep(2) 
-            
-            # Capture Frames (10fps)
-            fps = 10 
-            total_frames = int(Duration * fps)
-            
-            print(f"Rendering Overlay Sequence ({total_frames} frames)...")
-            for i in range(total_frames):
-                page.screenshot(path=os.path.join(output_seq_dir, f"frame_{i:03d}.png"), omit_background=True)
+            # Verify Size
+            size_kb = os.path.getsize(output_image_path) / 1024
+            print(f"Overlay Size: {size_kb:.2f} KB")
             
             browser.close()
             
-        return output_seq_dir
+        return output_image_path
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
