@@ -6,7 +6,8 @@ import time
 class AudioGenerator:
     def __init__(self):
         # Optional: Check for Keys, but don't require them.
-        self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
+        # Prefer explicit ELEVENLABS_API_KEY, but also support legacy TTS_API_KEY from workflow/README.
+        self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY") or os.getenv("TTS_API_KEY")
         self.eleven_voice_id = "nPczCjz86I70pA5ccg71" 
 
     def generate_audio(self, text, output_path="generated/audio.mp3"):

@@ -41,5 +41,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: generated-videos
-          path: generated/*.mp4
+          path: generated_videos/*.mp4
           retention-days: 5
