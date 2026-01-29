@@ -74,10 +74,10 @@ def main():
     print("--- 4. Generating Visuals ---")
     headline_text = script_data.get("headline", "BREAKING NEWS")
     ticker_text = script_data.get("ticker_text", "LIVE UPDATES")
-    sub_headline = script_data.get("sub_headline") or script_data.get("viral_description", "").split("\n")[0][:110]
+    story_summary = script_data.get("story_summary") or script_data.get("sub_headline") or "See video for details."
     
     # Generate Overlay Image (Using Strict Static Method)
-    overlay_path = visual_gen.generate_overlay(headline_text, ticker_text, sub_headline, Duration=15)
+    overlay_path = visual_gen.generate_overlay(headline_text, ticker_text, summary_text=story_summary, Duration=15)
     
     # Get Background (Video or Image)
     bg_path, bg_type = visual_gen.get_background_video(article, script_data.get("video_search_keywords", []))

@@ -94,13 +94,14 @@ You are a **top tier Indian news script writer** for viral vertical videos (YouT
 Strictly output JSON only, no extra text:
 {{
     "headline": "Viral, curiosity-driving title (max 70 chars)",
-    "sub_headline": "One-line summary that can sit under the headline on screen",
+    "sub_headline": "Short, punchy subtitle (max 50 chars)",
+    "story_summary": "2-3 short, clear sentences explaining the actual news event. This will be the main text on screen. Focus on WHO, WHAT, and WHY.",
     "voice_script": "Full spoken script for the anchor, with emotional delivery",
     "ticker_text": "Short, punchy ticker line that can loop at bottom",
     "viral_description": "YouTube description with hooks + hashtags",
     "viral_tags": ["#tag1", "#tag2", "..."],
     "video_search_keywords": ["short keyword 1", "short keyword 2", "topic keyword 3"]
-}}
+}
 
 Rules for voice_script:
 - Length: about 40–55 seconds when spoken.
@@ -113,7 +114,8 @@ Rules for voice_script:
 
 Rules for on-screen text:
 - "headline": must be short, clickable and curiosity-driven, max ~70 characters.
-- "sub_headline": 1 compact sentence (max ~90 characters) that gives clarity about what exactly happened.
+- "sub_headline": Just a quick subtitle context.
+- "story_summary": This is CRITICAL. It must be 60-80 words max. Clear, readable breakdown of the event.
 - "ticker_text": 1 short line that can repeat in a scrolling bar, ALL CAPS, very punchy.
 
 Rules for other fields:
@@ -166,7 +168,7 @@ Now return ONLY the JSON object as specified above.
         return {
             "headline": f"Must Watch: {full_title}",
             "sub_headline": full_title,
-            "voice_script": f"Breaking news from Newsroom. {full_title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
+            "voice_script": f"Breaking news from Logic Vault. {full_title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",
             "viral_tags": ["#breaking", "#news"],
@@ -199,7 +201,7 @@ Now return ONLY the JSON object as specified above.
         joined = "\n".join(items)
 
         prompt = f"""
-You are helping choose which news story will go most viral as a short vertical video for 'Newsroom'.
+You are helping choose which news story will go most viral as a short vertical video for 'Logic Vault'.
 
 Here are candidate stories (index: title | short description):
 {joined}

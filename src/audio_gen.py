@@ -14,7 +14,7 @@ class AudioGenerator:
 
         # Free, natural-ish voices (no key). Pick one default.
         # You can change this later for style.
-        self.edge_voice = os.getenv("EDGE_TTS_VOICE", "en-IN-NeerjaNeural")
+        self.edge_voice = os.getenv("EDGE_TTS_VOICE", "en-US-AriaNeural")
 
     def generate_audio(self, text, output_path="generated/audio.mp3"):
         """
@@ -80,7 +80,9 @@ class AudioGenerator:
             ssml = self._to_ssml(text)
 
             async def _run():
-                communicate = edge_tts.Communicate(ssml, voice=self.edge_voice, rate="+8%", pitch="+2%")
+                # Removed pitch/rate args that were causing errors/robotic sound
+                # en-US-AriaNeural is naturally good paced.
+                communicate = edge_tts.Communicate(ssml, voice=self.edge_voice)
                 await communicate.save(output_path)
 
             print(f"Using FREE Edge Neural TTS voice: {self.edge_voice}")
@@ -141,4 +143,4 @@ class AudioGenerator:
 
 if __name__ == "__main__":
     gen = AudioGenerator()
-    gen.generate_audio("This is a test broadcast from Newsroom.", "test_audio.mp3")
+    gen.generate_audio("This is a test broadcast from Logic Vault.", "test_audio.mp3")
