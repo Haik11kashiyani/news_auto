@@ -29,7 +29,10 @@ class VideoEditor:
             print(f"Audio Duration: {duration}s")
             
             # 2. Prepare Background
-            if bg_type == "video":
+            if not bg_path or not os.path.exists(bg_path):
+                print("Warning: Background not found. Using Black Fallback.")
+                bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=duration)
+            elif bg_type == "video":
                 bg_clip = VideoFileClip(bg_path, audio=False)
                 # Loop if too short
                 if bg_clip.duration < duration:
@@ -41,6 +44,7 @@ class VideoEditor:
                 img = ImageClip(bg_path).set_duration(duration)
                 # Simple zoom effect: 1.0 -> 1.1
                 bg_clip = img.resize(lambda t: 1 + 0.02 * t) 
+
             
             # Subtle grading to feel more cinematic and make text pop
             try:
