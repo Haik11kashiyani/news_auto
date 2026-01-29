@@ -6,74 +6,167 @@ from playwright.sync_api import sync_playwright
 import urllib.parse
 
 class VisualGenerator:
-    # EMBEDDED TEMPLATE TO REMOVE FILE I/O RISKS
+    # EMBEDDED TEMPLATE - CENTER CARD STYLE WITH GSAP
     HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
-    <title>News Overlay Style 3</title>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+    <title>News Overlay Newsroom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Roboto+Condensed:wght@700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; width: 1080px; height: 1920px; background: transparent; font-family: 'Chakra Petch', sans-serif; overflow: hidden; display: grid; grid-template-rows: 150px 1fr 220px; }
-        .header { background: rgba(0,0,0,0.95); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; border-bottom: 4px solid #00ffcc; box-shadow: 0 10px 30px rgba(0, 255, 204, 0.25); }
-        .brand { font-size: 46px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; }
-        .brand span { color: #00ffcc; }
-        .live-badge { background: #ff0033; color: white; padding: 10px 20px; font-size: 24px; font-weight: 700; border-radius: 5px; animation: pulse 2s infinite; }
-        .content { position: relative; }
-        /* Dark glass layer so text always readable over any video */
-        .glass-backdrop { position: absolute; left: 0; right: 0; bottom: 0; top: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.7) 100%); }
-        .headline-box { position: absolute; left: 40px; right: 40px; bottom: 260px; background: rgba(0,0,0,0.85); border-left: 6px solid #00ffcc; padding: 22px 30px 18px; color: #ffffff; border-radius: 10px; box-shadow: 0 0 40px rgba(0,0,0,0.7); }
-        .headline-label { font-family: 'Roboto Condensed', sans-serif; font-size: 24px; letter-spacing: 3px; color: #ffcc00; margin-bottom: 4px; text-transform: uppercase; }
-        .headline-main { font-size: 34px; line-height: 1.25; font-weight: 700; margin-bottom: 4px; }
-        .headline-sub { font-size: 24px; line-height: 1.3; color: #d0d0d0; max-height: 3.2em; overflow: hidden; }
-        .footer { background: linear-gradient(0deg, #000 0%, rgba(0,0,0,0.8) 100%); display: flex; flex-direction: column; justify-content: flex-end; }
-        .ticker-wrap { width: 100%; height: 80px; background: #00ffcc; overflow: hidden; display: flex; align-items: center; }
-        .ticker { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker 20s linear infinite; font-family: 'Roboto Condensed', sans-serif; font-size: 40px; font-weight: 700; color: #000; text-transform: uppercase; }
-        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        body { margin: 0; padding: 0; width: 1080px; height: 1920px; background: transparent; font-family: 'Inter', sans-serif; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        
+        /* Background dim layer (optional if we had video) */
+        .glass-backdrop { position: absolute; top:0; left:0; width:100%; height:100%; z-index: -1; }
+
+        /* MAIN CARD */
+        .news-card {
+            width: 900px;
+            background: rgba(10, 10, 10, 0.85); /* Dark card */
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 60px 50px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            transform-origin: center center;
+            opacity: 0; /* JS will fade in */
+        }
+
+        /* HEADER SECTION */
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 30px;
+        }
+        .brand-pill {
+            background: #FF0033;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .topic-label {
+            color: #00FFCC;
+            font-family: 'Roboto Condensed', sans-serif;
+            font-size: 28px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        /* CONTENT SECTION */
+        .headline-main {
+            font-size: 56px;
+            line-height: 1.1;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+        
+        .separator {
+            width: 100px;
+            height: 6px;
+            background: #00FFCC;
+            border-radius: 10px;
+        }
+
+        .summary-text {
+            font-size: 38px;
+            line-height: 1.5;
+            color: #d0d0d0;
+            font-weight: 400;
+            border-left: 6px solid #FF0033;
+            padding-left: 30px;
+            margin-top: 10px;
+        }
+
+        /* FOOTER / TICKER */
+        .card-footer {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ticker-text {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 24px;
+            color: #ccc;
+            white-space: nowrap;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="brand">NEWS<span>ROOM</span></div>
-        <div class="live-badge">LIVE</div>
-    </div>
-    <div class="content">
-        <div class="glass-backdrop"></div>
-        <div class="headline-box">
-            <div class="headline-label" id="headline-label">TOP STORY</div>
-            <div class="headline-main" id="headline-display">Data Loading...</div>
-            <div class="headline-sub" id="headline-sub">Loading summary...</div>
+
+    <div class="news-card" id="mainCard">
+        <div class="card-header">
+            <div class="brand-pill">NEWSROOM</div>
+            <div class="topic-label" id="headline-label">TOP STORY</div>
+        </div>
+        
+        <div class="headline-main" id="headline-display">
+            Loading Headline...
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="summary-text" id="summary-display">
+            Loading summary content...
+        </div>
+
+        <div class="card-footer">
+             <marquee scrollamount="10" class="ticker-text" id="ticker-display">
+                 LIVE UPDATES /// BREAKING NEWS ///
+             </marquee>
         </div>
     </div>
-    <div class="footer">
-        <div class="ticker-wrap">
-            <div class="ticker" id="ticker-display">NEWS /// LIVE UPDATE /// STAY TUNED ///</div>
-        </div>
-    </div>
+
     <script>
-        function setOverlayText(headline, ticker, label, subline) {
+        function setOverlayText(headline, summary, label, ticker) {
             document.getElementById('headline-display').innerText = headline;
-            if (subline && subline.trim().length > 0) {
-                document.getElementById('headline-sub').innerText = subline;
-            } else {
-                document.getElementById('headline-sub').innerText = "";
-            }
-            const fullTicker = ticker + "  ///  " + ticker + "  ///  " + ticker;
-            document.getElementById('ticker-display').innerText = fullTicker;
-            if (label && label.trim().length > 0) {
-                document.getElementById('headline-label').innerText = label.toUpperCase();
-            }
+            document.getElementById('summary-display').innerText = summary;
+            document.getElementById('headline-label').innerText = label;
+            document.getElementById('ticker-display').innerText = ticker + "   ///   " + ticker;
+
+            // GSAP Animations
+            const tl = gsap.timeline();
+            
+            // 1. Card entry (scale up + fade)
+            tl.to("#mainCard", { duration: 0.8, opacity: 1, scale: 1, ease: "power3.out" });
+            
+            // 2. Elements stagger in
+            tl.from(".card-header", { duration: 0.5, y: -20, opacity: 0, ease: "power2.out" }, "-=0.4");
+            tl.from(".headline-main", { duration: 0.6, x: -30, opacity: 0, ease: "power2.out" }, "-=0.3");
+            tl.from(".separator", { duration: 0.4, width: 0, ease: "power2.out" }, "-=0.3");
+            tl.from(".summary-text", { duration: 0.8, y: 20, opacity: 0, ease: "power2.out" }, "-=0.2");
+            tl.from(".card-footer", { duration: 0.5, y: 20, opacity: 0, ease: "power2.out" }, "-=0.4");
         }
+        
+        // Initial set (hidden)
+        gsap.set("#mainCard", { opacity: 0, scale: 0.9 });
     </script>
 </body>
 </html>
     """
 
     def __init__(self):
-        self.pexels_api_key = os.getenv("PEXELS_API_KEY")
         self.generated_dir = "generated"
         # CLEANUP: Wipe old files to ensure we don't upload stale artifacts
         if os.path.exists(self.generated_dir):
@@ -86,7 +179,6 @@ class VisualGenerator:
     def _build_label(self, headline: str) -> str:
         """
         Build a small dynamic label based on the headline content.
-        This keeps overlay feeling alive instead of a static 'BREAKING NEWS'.
         """
         if not headline:
             return "TOP STORY"
@@ -94,56 +186,28 @@ class VisualGenerator:
         if "BREAKING" in h:
             return "BREAKING"
         if "ALERT" in h:
-            return "ALERT"
+            return "URGENT"
         if "UPDATE" in h:
-            return "BIG UPDATE"
+            return "UPDATE"
         if "EXCLUSIVE" in h:
             return "EXCLUSIVE"
         return "TOP STORY"
 
     def get_background_video(self, news_article, keywords):
-        # ... (rest of get_background_video kept same, just ensuring class structure is valid)
+        """
+        NO API CALLS.
+        Returns:
+            - Path to article image (if exists) -> 'image'
+            - OR None -> 'image' (which VideoEditor will handle as black fallback)
+        """
         image_url = news_article.get("image_url")
-        # Strategy: Always prefer Pexels for "Viral" look if keywords exist?
-        # User said: "If news content is big content... dynamic bg...".
-        # Let's try Pexels first for high quality, if fails, fallback to News Image.
-        
-        video_path = self._search_pexels_video(keywords)
-        if video_path:
-            return video_path, "video"
-
         if image_url:
+            print(f"Downloading Article Image: {image_url}")
             image_path = self._download_image(image_url)
             if image_path:
                 return image_path, "image"
 
-        return None, None
-
-    def _search_pexels_video(self, keywords):
-        if not self.pexels_api_key or not keywords:
-            return None
-        
-        # Taking top 2 keywords
-        query = " ".join(keywords[:2])
-        url = f"https://api.pexels.com/videos/search?query={urllib.parse.quote(query)}&orientation=portrait&per_page=1"
-        headers = {"Authorization": self.pexels_api_key}
-
-        try:
-            response = requests.get(url, headers=headers)
-            data = response.json()
-            if data.get("videos"):
-                video_url = data["videos"][0]["video_files"][0]["link"]
-                # Find high quality mp4
-                for file in data["videos"][0]["video_files"]:
-                    if file["height"] >= 1080 and ".mp4" in file["link"]:
-                        video_url = file["link"]
-                        break
-                
-                print(f"Downloading Pexels Background: {query}")
-                return self._download_file(video_url, f"bg_{int(time.time())}.mp4")
-        except Exception as e:
-            print(f"Pexels search failed: {e}")
-        return None
+        return None, "image"
 
     def _download_image(self, url):
         try:
@@ -167,33 +231,36 @@ class VisualGenerator:
             print(f"Download failed for {url}: {e}")
             return None
 
-    def generate_overlay(self, headline, ticker_text, sub_headline=None, Duration=10):
+    def generate_overlay(self, headline, ticker_text, summary_text=None, Duration=10):
         """
-        Captures the premium Style 3 overlay using EMBEDDED HTML.
+        Captures the premium Center Card overlay with GSAP animations.
         """
         
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 1080, "height": 1920})
             
-            # DIRECT INJECTION - 100% Reliable
+            # DIRECT INJECTION
             print("DEBUG: Setting page content directly...")
             page.set_content(self.HTML_TEMPLATE, wait_until="networkidle")
             
-            # Inject Usage of new function signature in HTML
-            # Escape quotes to prevent JS errors
+            # Escape quotes
             safe_headline = (headline or "Top Story").replace("'", "\\'").replace('"', '\\"')
             safe_ticker = (ticker_text or "LATEST NEWS").replace("'", "\\'").replace('"', '\\"')
-            safe_sub = (sub_headline or "").replace("'", "\\'").replace('"', '\\"')
+            safe_summary = (summary_text or "Loading...").replace("'", "\\'").replace('"', '\\"')
             label = self._build_label(headline or "")
             safe_label = label.replace("'", "\\'").replace('"', '\\"')
             
-            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_ticker}', '{safe_label}', '{safe_sub}')")
+            # Trigger setup AND Animation
+            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_summary}', '{safe_label}', '{safe_ticker}')")
             
-            # Wait for layout/fonts
-            time.sleep(2)
+            # WAIT FOR GSAP ANIMATION TO COMPLETE
+            # Animation duration sums to ~1.5s total including offsets. 
+            # We wait 2.5s to be safe and capture the final settled state.
+            print("Waiting for GSAP animations to settle...")
+            time.sleep(2.5)
 
-            # Capture Single Static Overlay (Robust)
+            # Capture Static Overlay (Final State)
             output_image_path = os.path.join(self.generated_dir, "overlay_final.png")
             print(f"Capturing Static Overlay to {output_image_path}...")
             
@@ -211,7 +278,6 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
     gen = VisualGenerator()
-    # Test Pexels
-    # print(gen.get_background_video({}, ["money", "finance"]))
-    # Test Overlay
-    # gen.generate_overlay("BREAKING NEWS: ALIEN INVASION CONFIRMED", "12:00 IST")
+    # Test
+    # gen.generate_overlay("GSAP ADDED TO SYSTEM", "SYSTEM UPGRADE", "This is the summary text that sits in the center card.", 10)
+
