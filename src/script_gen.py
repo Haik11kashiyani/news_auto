@@ -166,7 +166,7 @@ Now return ONLY the JSON object as specified above.
         return {
             "headline": f"Must Watch: {full_title}",
             "sub_headline": full_title,
-            "voice_script": f"Breaking news from Logic Vault. {full_title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
+            "voice_script": f"Breaking news from Newsroom. {full_title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",
             "viral_tags": ["#breaking", "#news"],
@@ -199,7 +199,7 @@ Now return ONLY the JSON object as specified above.
         joined = "\n".join(items)
 
         prompt = f"""
-You are helping choose which news story will go most viral as a short vertical video for 'Logic Vault'.
+You are helping choose which news story will go most viral as a short vertical video for 'Newsroom'.
 
 Here are candidate stories (index: title | short description):
 {joined}

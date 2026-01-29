@@ -1,6 +1,6 @@
 # Newsroom 24/7 Automation
 
-This bot automates the creation of viral news "Shorts" for the "Logic Vault" brand.
+This bot automates the creation of viral news "Shorts" for the "Newsroom" channel.
 It fetches news, scripts it with a persona, generates audio/visuals, and (future) uploads to social media.
 
 ## 🚀 Setup & Usage (GitHub Actions)

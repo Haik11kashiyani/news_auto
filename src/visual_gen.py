@@ -37,7 +37,7 @@ class VisualGenerator:
 </head>
 <body>
     <div class="header">
-        <div class="brand">LOGIC <span>VAULT</span></div>
+        <div class="brand">NEWS<span>ROOM</span></div>
         <div class="live-badge">LIVE</div>
     </div>
     <div class="content">
