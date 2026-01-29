@@ -94,37 +94,33 @@ You are a **top tier Indian news script writer** for viral vertical videos (YouT
 Strictly output JSON only, no extra text:
 {{
     "headline": "Viral, curiosity-driving title (max 70 chars)",
-    "sub_headline": "Short, punchy subtitle (max 50 chars)",
-    "story_summary": "3 sentences explaining the event. MUST include context, cause, and effect. Don't just tease it—tell the news.",
-    "voice_script": "Full spoken script for the anchor, with emotional delivery",
-    "ticker_text": "Short, punchy ticker line that can loop at bottom",
-    "viral_description": "YouTube description with hooks + hashtags",
-    "viral_tags": ["#tag1", "#tag2", "..."],
-    "video_search_keywords": ["short keyword 1", "short keyword 2", "topic keyword 3"]
+    "visual_segments": [
+        "Slide 1 text: The main Event/Hook (Max 15 words)",
+        "Slide 2 text: Key Detail/Context (Max 15 words)",
+        "Slide 3 text: The 'Why' or Consequence (Max 15 words)"
+    ],
+    "voice_script": "Full spoken script. DENSE, FACTUAL, EMOTIONAL. No filler.",
+    "ticker_text": "Short, punchy ticker line",
+    "viral_description": "YouTube description",
+    "viral_tags": ["#tag1", "..."],
+    "video_search_keywords": ["keyword1", "keyword2"]
 }}
 
 Rules for voice_script:
-- Length: about 40–55 seconds when spoken.
-- Language style: conversational Indian English / Hinglish (no very hard words), feel like a human TV anchor.
-- Start with a **strong hook in the first 3 seconds** that makes viewer stop scrolling.
-- Use **emotion**: urgency, shock, empathy, and suspense where it makes sense.
-- Break into **short, punchy sentences** (max 12–14 words per sentence).
-- Add [pause] where natural for drama and breathing.
-- Do NOT mention that this is AI generated.
+- **NO FILLER**: NEVER say "We are tracking", "Developing story", "Here is what we know".
+- Start IMMEDIATELY with the news. "Trump just signed X..."
+- Tone: Urgent, Insider, Fast-paced. Imagine a friend telling you a secret.
+
+Rules for visual_segments:
+- These are the text chunks that will appear on screen sequentially.
+- They must NOT be subtitles. They must be **Visual Headlines**.
+- Slide 1: The WHAT.
+- Slide 2: The HOW/DETAILS.
+- Slide 3: The IMPACT/WHY.
 
 Rules for on-screen text:
-- "headline": must be short, clickable and curiosity-driven, max ~70 characters.
-- "sub_headline": Just a quick subtitle context.
-- "story_summary": Focus on the "Actual News". Explain WHO did WHAT and WHY. Max 80 words.
-- "ticker_text": 1 short line that can repeat in a scrolling bar, ALL CAPS, very punchy.
-
-Rules for other fields:
-- "viral_description": 2–3 lines, first line is hook, then 4–6 hashtags.
-- "viral_tags": only include tags useful for YouTube Shorts news (e.g. #breakingnews, #india, #shorts, #news, topic tags).
-- "video_search_keywords": 3–6 compact keywords that describe the visual/story for stock footage search.
-
-News Article Title: "{title}"
-News Context (summary or description): "{description}"
+- "headline": Max 70 chars.
+- "ticker_text": 1 short loopable line.
 
 Now return ONLY the JSON object as specified above.
         """
@@ -143,6 +139,8 @@ Now return ONLY the JSON object as specified above.
             if response.status_code == 200:
                 result = response.json()
                 raw_text = result['candidates'][0]['content']['parts'][0]['text']
+                clean_text = raw_text.replace('```json', '').replace('```', '').strip()
+                return json.loads(clean_text)
                 clean_text = raw_text.replace('```json', '').replace('```', '').strip()
                 return json.loads(clean_text)
             elif response.status_code == 429:
@@ -172,11 +170,15 @@ Now return ONLY the JSON object as specified above.
         
         full_title = str(title)
         
+        # Split description into pseudo-segments
+        p1 = description[:50] + "..."
+        p2 = description[50:110] + "..." if len(description) > 50 else title
+        p3 = "Updates coming."
+
         return {
             "headline": f"{full_title[:60]}...",
-            "sub_headline": full_title[:50],
-            "story_summary": description if len(description) > 20 else f"{full_title}. Stay tuned for more updates on this story as it develops.",
-            "voice_script": f"Breaking news. {full_title}. {description}. Stay tuned for more updates.",
+            "visual_segments": [p1, p2, p3],
+            "voice_script": f"{full_title}. {description}. This concludes the update.",
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",
             "viral_tags": ["#breaking", "#news"],
