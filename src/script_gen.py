@@ -95,7 +95,7 @@ Strictly output JSON only, no extra text:
 {{
     "headline": "Viral, curiosity-driving title (max 70 chars)",
     "sub_headline": "Short, punchy subtitle (max 50 chars)",
-    "story_summary": "2-3 short, clear sentences explaining the actual news event. This will be the main text on screen. Focus on WHO, WHAT, and WHY.",
+    "story_summary": "3 sentences explaining the event. MUST include context, cause, and effect. Don't just tease it—tell the news.",
     "voice_script": "Full spoken script for the anchor, with emotional delivery",
     "ticker_text": "Short, punchy ticker line that can loop at bottom",
     "viral_description": "YouTube description with hooks + hashtags",
@@ -115,7 +115,7 @@ Rules for voice_script:
 Rules for on-screen text:
 - "headline": must be short, clickable and curiosity-driven, max ~70 characters.
 - "sub_headline": Just a quick subtitle context.
-- "story_summary": This is CRITICAL. It must be 60-80 words max. Clear, readable breakdown of the event.
+- "story_summary": Focus on the "Actual News". Explain WHO did WHAT and WHY. Max 80 words.
 - "ticker_text": 1 short line that can repeat in a scrolling bar, ALL CAPS, very punchy.
 
 Rules for other fields:
@@ -161,14 +161,22 @@ Now return ONLY the JSON object as specified above.
     def _backup_template(self, article):
         """
         Last resort: Returns a valid script object so the pipeline DOES NOT CRASH.
+        Now Enhanced to use RSS description if available.
         """
         print("Using BACKUP TEMPLATE script.")
         title = article.get('title', 'Breaking News')
+        description = article.get('description', '') or "We are tracking this developing story."
+        
+        # Clean HTML from description if present (basic)
+        description = description.replace("<p>", "").replace("</p>", "").replace("<b>", "").replace("</b>", "")
+        
         full_title = str(title)
+        
         return {
-            "headline": f"Must Watch: {full_title}",
-            "sub_headline": full_title,
-            "voice_script": f"Breaking news from Logic Vault. {full_title}. We are tracking this developing story and will bring you updates as they happen. Stay tuned.",
+            "headline": f"{full_title[:60]}...",
+            "sub_headline": full_title[:50],
+            "story_summary": description if len(description) > 20 else f"{full_title}. Stay tuned for more updates on this story as it develops.",
+            "voice_script": f"Breaking news. {full_title}. {description}. Stay tuned for more updates.",
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",
             "viral_tags": ["#breaking", "#news"],
