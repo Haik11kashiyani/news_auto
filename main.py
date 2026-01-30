@@ -70,36 +70,54 @@ def main():
         print("Failed to generate audio.")
         return
 
-    # 4. Generate Visuals
-    print("--- 4. Generating Visuals ---")
+    # 4. Generate Visuals (Multi-Slide)
+    print("--- 4. Generating Visuals (Multi-Slide) ---")
     headline_text = script_data.get("headline", "BREAKING NEWS")
     ticker_text = script_data.get("ticker_text", "LIVE UPDATES")
-    story_summary = script_data.get("story_summary") or script_data.get("sub_headline") or "See video for details."
     
-    # Generate Overlay Image (Using Strict Static Method)
-    overlay_path = visual_gen.generate_overlay(headline_text, ticker_text, summary_text=story_summary, Duration=15)
+    # Get segments or fallback to one big summary
+    visual_segments = script_data.get("visual_segments")
+    if not visual_segments:
+        # Fallback if AI didn't return list
+        single_summary = script_data.get("story_summary") or script_data.get("sub_headline") or "See video for details."
+        visual_segments = [single_summary]
+
+    overlay_paths = []
+    print(f"Generating {len(visual_segments)} slides...")
     
+    for idx, segment in enumerate(visual_segments):
+        filename = f"slide_{idx}.png"
+        path = visual_gen.generate_overlay(
+            headline=headline_text,
+            ticker_text=ticker_text,
+            summary_text=segment,
+            filename=filename
+        )
+        if path:
+            overlay_paths.append(path)
+    
+    if not overlay_paths:
+        print("Error: No overlays generated.")
+        sys.exit(1)
+
     # Get Background (Video or Image)
     bg_path, bg_type = visual_gen.get_background_video(article, script_data.get("video_search_keywords", []))
     
-    if not bg_path:
-        print("Warning: No background found. Using color fallback in editor?")
-        # For now, let's assume get_background_video ALWAYS returns something or we fail.
-        # Actually, let's make a mock background if needed?
-        pass
-
     # 5. Assemble Video
     print("--- 5. Assembling Video ---")
-    # We pass the calculated paths. 
-    # Note: Overlay is now a static image path.
-    # ADD TIMESTAMP TO ENSURE UNIQUE FILE
     unique_ts = int(time.time())
-    # Sanitize article_id to ensure it's a valid filename (remove / : etc)
-    safe_id = "".join([c if c.isalnum() else "_" for c in str(article['article_id'])])
-    output_filename = f"news_{safe_id}_{unique_ts}.mp4"
-    final_path = editor.assemble_video(bg_path, bg_type, overlay_path, audio_path, output_filename)
     
-    if final_path:
+    # Sanitize Filename (remove invalid chars)
+    safe_article_id = str(article['article_id']).replace('/', '_').replace(':', '').replace('.', '')
+    output_filename = f"news_{safe_article_id}_{unique_ts}.mp4"
+    output_abs_path = os.path.join(os.getcwd(), "generated_videos", output_filename)
+    # Ensure dir exists
+    os.makedirs(os.path.dirname(output_abs_path), exist_ok=True)
+
+    # Call editor with LIST of overlays
+    final_path = editor.assemble_video(bg_path, bg_type, overlay_paths, audio_path, output_abs_path)
+    
+    if final_path and os.path.exists(final_path):
         print(f"SUCCESS: Video generated at {final_path}")
         # Mark as processed
         print(f"Marking article {article['article_id']} as processed...")

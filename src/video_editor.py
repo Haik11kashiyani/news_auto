@@ -14,72 +14,48 @@ class VideoEditor:
         """
         try:
             # 1. Load Audio
-            print(f"Loading Audio from: {audio_path}")
-            if not os.path.exists(audio_path):
-                print("Error: Audio file not found!")
-                return None
+            print(f"Assembling video: {output_path}")
             
-            # Check size
-            if os.path.getsize(audio_path) < 100:
-                print("Error: Audio file is empty or too small!")
-                return None
-
+            # Load Audio First to get duration
             audio = AudioFileClip(audio_path)
             duration = audio.duration
             print(f"Audio Duration: {duration}s")
-            
-            # 2. Prepare Background
+
+            # 1. Background Layer (Full Duration)
             if not bg_path or not os.path.exists(bg_path):
                 print("Warning: Background not found. Using Black Fallback.")
                 bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=duration)
             elif bg_type == "video":
+                # Loop video if shorter than audio
                 bg_clip = VideoFileClip(bg_path, audio=False)
-                # Loop if too short
                 if bg_clip.duration < duration:
-                    bg_clip = bg_clip.loop(duration=duration)
+                    bg_clip = vfx.loop(bg_clip, duration=duration)
                 else:
                     bg_clip = bg_clip.subclip(0, duration)
+                bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
             else:
-                # Image -> Ken Burns Effect
+                # Image with Pan/Zoom
                 img = ImageClip(bg_path).set_duration(duration)
-                # Simple zoom effect: 1.0 -> 1.1
+                # Subtle zoom effect
                 bg_clip = img.resize(lambda t: 1 + 0.02 * t) 
-
-            
-            # Subtle grading to feel more cinematic and make text pop
+            # Use strict ImageClip for the static PNG sequence
             try:
-                bg_clip = bg_clip.fx(vfx.colorx, 0.95)  # slightly darker
-            except Exception:
-                pass
-
-            # Crop to 9:16 (Vertical) - Center Crop
-            # Assuming 1080x1920 target
-            w, h = bg_clip.size
-            target_ratio = 9/16
-            current_ratio = w/h
-            
-            if current_ratio > target_ratio:
-                # Too wide, crop width
-                new_w = h * target_ratio
-                bg_clip = bg_clip.crop(x1=w/2 - new_w/2, width=new_w, height=h)
-            else:
-                # Too tall (rare), crop height
-                new_h = w / target_ratio
-                bg_clip = bg_clip.crop(y1=h/2 - new_h/2, width=w, height=new_h)
-                
-            bg_clip = bg_clip.resize(newsize=(1080, 1920))
-
-            # 3. Prepare Overlay
-            print(f"Loading Overlay from: {overlay_path}")
-            overlay_clip = None
-            
-            # Use strict ImageClip for the static PNG
-            try:
-                 overlay_clip = ImageClip(overlay_path, duration=duration)
-                 # Resize to fit just in case, though it should match viewport
-                 overlay_clip = overlay_clip.resize(newsize=(1080, 1920))
+                if isinstance(overlay_path, list):
+                    # Multi-Slide logic: Split total duration equally
+                    num_slides = len(overlay_path)
+                    slide_duration = duration / num_slides
+                    clips = []
+                    for path in overlay_path:
+                        clip = ImageClip(path).set_duration(slide_duration).resize(newsize=(1080, 1920))
+                        clips.append(clip)
+                    overlay_clip = concatenate_videoclips(clips)
+                else:
+                    # Single Slide logic
+                    overlay_clip = ImageClip(overlay_path, duration=duration)
+                    # Resize to fit just in case, though it should match viewport
+                    overlay_clip = overlay_clip.resize(newsize=(1080, 1920))
             except Exception as e:
-                print(f"Failed to load overlay image: {e}")
+                print(f"Failed to load overlay image(s): {e}")
                 return None
 
             # Position Center
