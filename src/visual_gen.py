@@ -84,13 +84,16 @@ class VisualGenerator:
         }
 
         .summary-text {
-            font-size: 38px;
-            line-height: 1.5;
+            font-size: 32px;
+            line-height: 1.4;
             color: #d0d0d0;
             font-weight: 400;
             border-left: 6px solid #FF0033;
             padding-left: 30px;
             margin-top: 10px;
+            min-height: 150px; /* Ensure space is reserved */
+            display: flex;
+            align-items: center;
         }
 
         /* FOOTER / TICKER */
