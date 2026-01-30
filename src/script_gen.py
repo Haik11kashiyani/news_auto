@@ -157,37 +157,60 @@ Now return ONLY the JSON object as specified above.
             print(f"Generation Exception: {e}")
             return self._backup_template(news_article)
 
+        if self.gemini_disabled or not self.api_key:
+             return self._backup_template(news_article)
+
     def _backup_template(self, article):
         """
         Last resort: Returns a valid script object so the pipeline DOES NOT CRASH.
-        Now Enhanced to use RSS description if available.
+        Enhanced to use FULL CONTENT.
         """
         print("Using BACKUP TEMPLATE script.")
         title = article.get('title', 'Breaking News')
-        description = article.get('description', '') or "We are tracking this developing story."
         
-        # Clean HTML from description if present (basic)
-        description = description.replace("<p>", "").replace("</p>", "").replace("<b>", "").replace("</b>", "")
+        # Prioritize full scraped content -> description -> fallback
+        content_source = article.get('full_content', '') or article.get('description', '') or "We are tracking this developing story."
+        
+        # heuristic cleaning
+        content_source = content_source.replace("<p>", "").replace("</p>", "").replace("<b>", "").replace("</b>", "").replace("\n", " ")
         
         full_title = str(title)
         
-        # Smart split for visual segments
-        # Split by sentences or chunks to avoid cutting words
-        sentences = description.split(". ")
-        if len(sentences) >= 3:
-            p1 = sentences[0][:80]
-            p2 = sentences[1][:80]
-            p3 = sentences[2][:80]
-        elif len(sentences) == 2:
-            p1 = sentences[0][:80]
-            p2 = sentences[1][:80]
-            p3 = "Check description for more."
-        else:
-            # Fallback for single sentence description
-            mid = len(description) // 2
-            p1 = description[:mid][:80]
-            p2 = description[mid:][:80]
-            p3 = "Full story in video."
+        # Build segments of roughly 150 chars (approx 20-30 words)
+        visual_segments = []
+        words = content_source.split(" ")
+        current_segment = []
+        current_len = 0
+        
+        for word in words:
+            if current_len + len(word) > 140: # conservative limit for card
+                # close segment
+                visual_segments.append(" ".join(current_segment))
+                current_segment = [word]
+                current_len = len(word)
+            else:
+                current_segment.append(word)
+                current_len += len(word) + 1
+        
+        if current_segment:
+            visual_segments.append(" ".join(current_segment))
+            
+        # Limit to max 5 segments for video length sanity, but better than 3 fixed
+        visual_segments = visual_segments[:6] 
+        
+        # If very short, ensure at least 1
+        if not visual_segments:
+             visual_segments = [content_source[:140]]
+
+        return {
+            "headline": full_title[:100],  
+            "visual_segments": visual_segments,
+            "voice_script": f"{full_title}. {content_source}. This concludes the update.",
+            "ticker_text": f"BREAKING: {full_title}",
+            "viral_description": f"Breaking news: {full_title} #shorts #news",
+            "viral_tags": ["#breaking", "#news"],
+            "video_search_keywords": ["news", "breaking"]
+        }
 
         return {
             "headline": full_title[:100],  # Increased limit, no forced '...'
