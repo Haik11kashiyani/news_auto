@@ -163,6 +163,9 @@ class NewsFetcher:
             # Clean up whitespace
             text = " ".join(text.split())
             return text[:4000] # Increased limit slightly
+        except Exception as e:
+            print(f"Scraping failed for {url}: {e}")
+            return ""
 
     def _fetch_rss_sources(self, feed_urls):
         """
