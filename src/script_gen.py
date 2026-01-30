@@ -94,7 +94,7 @@ You are a **top tier Indian news script writer** for viral vertical videos (YouT
 
 Strictly output JSON only, no extra text:
 {{
-    "headline": "Viral, curiosity-driving title (max 70 chars)",
+    "headline": "Viral, curiosity-driving title (max 85 chars)",
     "visual_segments": [
         "Slide 1 text: The main Event/Hook (Max 15 words)",
         "Slide 2 text: Key Detail/Context (Max 15 words)",
@@ -171,13 +171,26 @@ Now return ONLY the JSON object as specified above.
         
         full_title = str(title)
         
-        # Split description into pseudo-segments
-        p1 = description[:50] + "..."
-        p2 = description[50:110] + "..." if len(description) > 50 else title
-        p3 = "Updates coming."
+        # Smart split for visual segments
+        # Split by sentences or chunks to avoid cutting words
+        sentences = description.split(". ")
+        if len(sentences) >= 3:
+            p1 = sentences[0][:80]
+            p2 = sentences[1][:80]
+            p3 = sentences[2][:80]
+        elif len(sentences) == 2:
+            p1 = sentences[0][:80]
+            p2 = sentences[1][:80]
+            p3 = "Check description for more."
+        else:
+            # Fallback for single sentence description
+            mid = len(description) // 2
+            p1 = description[:mid][:80]
+            p2 = description[mid:][:80]
+            p3 = "Full story in video."
 
         return {
-            "headline": f"{full_title[:60]}...",
+            "headline": full_title[:100],  # Increased limit, no forced '...'
             "visual_segments": [p1, p2, p3],
             "voice_script": f"{full_title}. {description}. This concludes the update.",
             "ticker_text": f"BREAKING: {full_title}",

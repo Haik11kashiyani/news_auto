@@ -124,22 +124,45 @@ class NewsFetcher:
         try:
             from bs4 import BeautifulSoup
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
-            resp = requests.get(url, headers=headers, timeout=5)
+            resp = requests.get(url, headers=headers, timeout=10) # Increased timeout
             if resp.status_code != 200:
                 return ""
             
             soup = BeautifulSoup(resp.content, "html.parser")
-            # Heuristic: Find all p tags, join text. 
-            # Improvement: Limit to main container if possible, but general p tag extraction works well for major sites.
-            paragraphs = soup.find_all("p")
-            text = " ".join([p.get_text().strip() for p in paragraphs])
+            
+            # Smart Scraping: Prioritize main content containers
+            content_candidates = []
+            
+            # 1. Semantic Tags
+            for tag in ['article', 'main']:
+                found = soup.find(tag)
+                if found:
+                    content_candidates.append(found)
+                    
+            # 2. Common Classes/IDs
+            for selector in ['div[class*="content"]', 'div[class*="article"]', 'div[class*="story"]', 'div[id*="content"]', 'div[id*="article"]']:
+                found = soup.select_one(selector)
+                if found:
+                    content_candidates.append(found)
+
+            # Extract text from best candidate or fallback to body
+            target_container = content_candidates[0] if content_candidates else soup
+
+            # Get only P tags from the best container
+            paragraphs = target_container.find_all("p")
+            
+            # Filter out very short paragraphs (usually ads/nav)
+            clean_paragraphs = [p.get_text().strip() for p in paragraphs if len(p.get_text().strip()) > 50]
+            
+            if not clean_paragraphs:
+                 # If filtering was too aggressive, take all
+                 clean_paragraphs = [p.get_text().strip() for p in paragraphs]
+
+            text = " ".join(clean_paragraphs)
             
             # Clean up whitespace
             text = " ".join(text.split())
-            return text[:3000] # Limit to avoid token overflow
-        except Exception as e:
-            print(f"Scraping failed for {url}: {e}")
-            return ""
+            return text[:4000] # Increased limit slightly
 
     def _fetch_rss_sources(self, feed_urls):
         """

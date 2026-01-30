@@ -14,7 +14,7 @@ class AudioGenerator:
 
         # Free, natural-ish voices (no key). Pick one default.
         # You can change this later for style.
-        self.edge_voice = os.getenv("EDGE_TTS_VOICE", "en-US-AriaNeural")
+        self.edge_voice = os.getenv("EDGE_TTS_VOICE", "en-IN-NeerjaNeural")
 
     def generate_audio(self, text, output_path="generated/audio.mp3"):
         """

@@ -231,7 +231,7 @@ class VisualGenerator:
             print(f"Download failed for {url}: {e}")
             return None
 
-    def generate_overlay(self, headline, ticker_text, summary_text=None, Duration=10):
+    def generate_overlay(self, headline, ticker_text, summary_text=None, filename="overlay_final.png"):
         """
         Captures the premium Center Card overlay with GSAP animations.
         """
@@ -261,7 +261,7 @@ class VisualGenerator:
             time.sleep(2.5)
 
             # Capture Static Overlay (Final State)
-            output_image_path = os.path.join(self.generated_dir, "overlay_final.png")
+            output_image_path = os.path.join(self.generated_dir, filename)
             print(f"Capturing Static Overlay to {output_image_path}...")
             
             page.screenshot(path=output_image_path, omit_background=True)
