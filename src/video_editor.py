@@ -13,7 +13,8 @@ class VideoEditor:
         Assembles: Background (Image/Video) + Overlay (Sequence/Image) + Audio
         """
         try:
-            # 1. Load Audio
+            # 1. Output Path
+            output_path = os.path.join(self.output_dir, output_filename)
             print(f"Assembling video: {output_path}")
             
             # Load Audio First to get duration
