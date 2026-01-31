@@ -79,7 +79,9 @@ def main():
         # Remove speaking instructions if any
         import re
         # Remove common script prefixes like "Voice:", "Narrator:", "Audio:" (case insensitive)
-        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio)\s*[:=-]\s*', '', script_text, flags=re.IGNORECASE)
+        # Strip whitespace first to ensure ^ matches correctly
+        clean_text = script_text.strip()
+        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE)
         clean_text = clean_text.replace("[pause]", "...").replace("[URGENT]", "")
         
         if not audio_gen.generate_audio(clean_text, audio_path):
