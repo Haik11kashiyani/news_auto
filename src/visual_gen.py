@@ -68,26 +68,28 @@ class VisualGenerator:
 
         /* CONTENT SECTION */
         .headline-main {
-            font-size: 56px;
+            font-size: 64px;
             line-height: 1.1;
             font-weight: 800;
             color: #ffffff;
             margin: 0;
-            letter-spacing: -1px;
+            letter-spacing: -2px;
+            padding-bottom: 10px;
         }
         
         .separator {
-            width: 100px;
-            height: 6px;
+            width: 140px;
+            height: 8px;
             background: #00FFCC;
             border-radius: 10px;
+            margin-bottom: 20px;
         }
 
         .summary-text {
-            font-size: 32px;
+            font-size: 52px; /* Even Larger */
             line-height: 1.4;
-            color: #d0d0d0;
-            font-weight: 400;
+            color: #e0e0e0;
+            font-weight: 600; /* Bolder */
             border-left: 8px solid #FF0033;
             padding-left: 40px;
             margin-top: 30px;
@@ -106,13 +108,24 @@ class VisualGenerator:
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.1);
         }
+        .ticker-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
         .ticker-text {
             font-family: 'Chakra Petch', sans-serif;
-            font-size: 24px;
+            font-size: 32px; /* Larger */
             color: #ccc;
             white-space: nowrap;
             display: inline-block;
             text-transform: uppercase;
+            padding-left: 100%; /* Start from right */
+            animation: ticker-slide 15s linear infinite;
+        }
+        @keyframes ticker-slide {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
         }
 
     </style>
@@ -136,9 +149,11 @@ class VisualGenerator:
         </div>
 
         <div class="card-footer">
-             <marquee scrollamount="10" class="ticker-text" id="ticker-display">
-                 LIVE UPDATES /// BREAKING NEWS ///
-             </marquee>
+             <div class="ticker-container">
+                 <div class="ticker-text" id="ticker-display">
+                     LIVE UPDATES /// BREAKING NEWS ///
+                 </div>
+             </div>
         </div>
     </div>
 
@@ -147,7 +162,7 @@ class VisualGenerator:
             document.getElementById('headline-display').innerText = headline;
             document.getElementById('summary-display').innerText = summary;
             document.getElementById('headline-label').innerText = label;
-            document.getElementById('ticker-display').innerText = ticker + "   ///   " + ticker;
+            document.getElementById('ticker-display').innerText = ticker + "   ///   " + ticker + "   ///   " + ticker;
 
             // GSAP Animations
             const tl = gsap.timeline();
