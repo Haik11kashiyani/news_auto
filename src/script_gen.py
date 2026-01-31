@@ -207,7 +207,7 @@ Rules for visual text:
              segments = [{"visual": content_source[:100], "script": content_source}]
 
         return {
-            "headline": full_title[:150],  # Increased limit
+            "headline": full_title,  # No limit
             "segments": segments,
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",

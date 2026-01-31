@@ -72,17 +72,17 @@ class VideoEditor:
                 # Static center card
                 card_clip = ImageClip(i_path).set_duration(seg_duration).resize(newsize=(1080, 1920)).set_position("center")
 
-                # D. TICKER (Scrolling)
-                ticker_path = seg.get("ticker_image")
+                # D. TICKER (REMOVED REQUEST)
+                # ticker_path = seg.get("ticker_image")
                 layers = [bg_clip, card_clip]
                 
-                if ticker_path and os.path.exists(ticker_path):
-                    ticker_img = ImageClip(ticker_path).set_duration(seg_duration)
-                    scroll_speed = 250
-                    ticker_y = 1750
-                    # Scroll Right to Left
-                    ticker_clip = ticker_img.set_position(lambda t: (1080 - int(scroll_speed * t), ticker_y))
-                    layers.append(ticker_clip)
+                # if ticker_path and os.path.exists(ticker_path):
+                #     ticker_img = ImageClip(ticker_path).set_duration(seg_duration)
+                #     scroll_speed = 250
+                #     ticker_y = 1750
+                #     # Scroll Right to Left
+                #     ticker_clip = ticker_img.set_position(lambda t: (1080 - int(scroll_speed * t), ticker_y))
+                #     layers.append(ticker_clip)
 
                 # COMPOSITE SEGMENT
                 segment_comp = CompositeVideoClip(layers, size=(1080,1920)).set_duration(seg_duration)
