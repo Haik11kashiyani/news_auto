@@ -241,7 +241,8 @@ class VisualGenerator:
         """
         
         with sync_playwright() as p:
-            browser = p.chromium.launch()
+            # CI/Linux often requires --no-sandbox
+            browser = p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
             page = browser.new_page(viewport={"width": 1080, "height": 1920})
             
             # DIRECT INJECTION
