@@ -74,13 +74,25 @@ def main():
         # 4a. Audio
         audio_path = f"generated/segment_{article['article_id']}_{idx}.mp3"
         script_text = seg.get("script", "")
-        # Remove speaking instructions if any
+        
+        # COMPREHENSIVE AUDIO CLEANUP - Remove ALL metadata/tags
         import re
-        # Remove common script prefixes like "Voice:", "Narrator:", "Audio:" (case insensitive)
-        # Strip whitespace first to ensure ^ matches correctly
         clean_text = script_text.strip()
-        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE)
-        clean_text = clean_text.replace("[pause]", "...").replace("[URGENT]", "")
+        
+        # Pattern 1: Remove "Voice:", "Narrator:", "Speaker:", "Audio:" at start (any case)
+        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio|Voiceover|VO)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE)
+        
+        # Pattern 2: Remove emotion/direction tags like (Happy), [Excited], {Serious}
+        clean_text = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', clean_text, flags=re.IGNORECASE)
+        
+        # Pattern 3: Remove inline "Voice:" anywhere in text
+        clean_text = re.sub(r'\b(Voice|Narrator|Speaker)\s*[:=]\s*', '', clean_text, flags=re.IGNORECASE)
+        
+        # Pattern 4: Remove [pause], [URGENT], etc.
+        clean_text = re.sub(r'\[(pause|urgent|beat|sfx|music)\]', '', clean_text, flags=re.IGNORECASE)
+        
+        # Clean up double spaces
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
         
         if not audio_gen.generate_audio(clean_text, audio_path):
             print(f"Failed audio for segment {idx}")
