@@ -86,17 +86,15 @@ class VisualGenerator:
         }
 
         .summary-text {
-            font-size: 52px; /* Even Larger */
-            line-height: 1.4;
+            font-size: 48px; /* Slightly smaller */
+            line-height: 1.3;
             color: #e0e0e0;
-            font-weight: 600; /* Bolder */
+            font-weight: 500;
             border-left: 8px solid #FF0033;
-            padding-left: 40px;
+            padding-left: 30px;
             margin-top: 30px;
-            min-height: 500px; /* REQUEST: Make news div longer */
-            display: flex;
-            align-items: flex-start; /* Top align for long text */
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            padding-bottom: 20px;
+            max-width: 900px;
         }
 
         /* FOOTER / TICKER */

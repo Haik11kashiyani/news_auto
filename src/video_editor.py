@@ -107,47 +107,40 @@ class VideoEditor:
                 # 3. Composite Background
                 bg_clip = CompositeVideoClip([bg_blurred, fg_img_clip], size=(1080,1920))
 
-                # 4. Ticker Overlay (Scrolling)
+                # 4a. Card Overlay (Static Image)
+                # Animate Card Entry: Slide Up from bottom
+                # duration is seg_duration
+                # We want it to stay fixed, maybe slide in at start of first segment?
+                # But segments are concatenated. If we slide in every segment it looks glitchy.
+                # For now, just Static Center.
+                card_clip = ImageClip(i_path).set_duration(seg_duration).resize(newsize=(1080, 1920)).set_position("center")
+
+                # 4b. Ticker Overlay (Scrolling)
                 ticker_path = seg.get("ticker_image")
                 if ticker_path and os.path.exists(ticker_path):
-                    ticker_img = ImageClip(ticker_path).set_duration(duration)
-                    # Scroll logic: Move from Right (1080) to Left (-width)
-                    # speed = pixels per second. Let's say 150 px/s
-                    ticker_w = ticker_img.w
-                    # Start at 1080, end at -ticker_w
-                    # Position function (t): (x, y)
-                    # y fixed at bottom (approx 1600 or so, below card)
-                    # Use a fixed y position inside the card area or below? 
-                    # The card is centered. Card height ~800px. Center ~960. Bottom of card ~1360.
-                    # Let's put ticker at y=1400.
+                    ticker_img = ImageClip(ticker_path).set_duration(seg_duration)
                     
-                    # We want it to loop if short, or just scroll once?
-                    # Simple scroll: x(t) = 1080 - (speed * t)
-                    scroll_speed = 200
-                    ticker_clip = ticker_img.set_position(lambda t: (1080 - int(scroll_speed * t), 1500))
+                    # Scroll logic: Move from Right to Left
+                    scroll_speed = 250
+                    # Ticker Y position: The card is centered 1920 height.
+                    # If card content is variable, we need a safe spot. 
+                    # Bottom of screen is safest. 
+                    # y = 1750 (near bottom)
+                    ticker_y = 1750
                     
-                    # Add standard "NEWS" label or box backing? 
-                    # The ticker image itself has a red background box. Perfect.
+                    # x(t) = start_x - speed * t
+                    # We want continuous scrolling across segments? 
+                    # That's hard with per-segment clips.
+                    # Resetting scroll per segment is Acceptable for MVP.
+                    ticker_clip = ticker_img.set_position(lambda t: (1080 - int(scroll_speed * t), ticker_y))
                     
-                    # Add to clips? No, this is per segment.
-                    # We need to combine BG + Overlay Card + Ticker
-                    
-                    # Refine Composite:
-                    # card clip (ic) is already set.
-                    # We need to add ticker to this segment's composition?
-                    # Current logic concatenates 'clips' (which are ImageClips of the card).
-                    # We should make each segment a CompositeVideoClip(Card + Ticker).
-                    
-                    # REWRITE SEGMENT LOGIC slightly to support Ticker
-                    
-                    # Card
-                    card_clip = ImageClip(i_path).set_duration(seg_duration).resize(newsize=(1080, 1920)).set_position("center")
-                    
-                    # Combine Card + Ticker
-                    segment_comp = CompositeVideoClip([card_clip, ticker_clip], size=(1080,1920)).set_duration(seg_duration)
+                    # Combine
+                    segment_comp = CompositeVideoClip([bg_clip, card_clip, ticker_clip], size=(1080,1920)).set_duration(seg_duration)
                     clips.append(segment_comp)
                 else:
-                    clips.append(ic) # Fallback to just card
+                    # No ticker
+                    segment_comp = CompositeVideoClip([bg_clip, card_clip], size=(1080,1920)).set_duration(seg_duration)
+                    clips.append(segment_comp)
 
 
             # 4. Composite
