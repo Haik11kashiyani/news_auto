@@ -21,24 +21,7 @@ class VideoEditor:
             output_path = os.path.join(self.output_dir, output_filename)
             print(f"Assembling video: {output_path}")
 
-            # 1. Background Layer (Full Duration)
-            if not bg_path or not os.path.exists(bg_path):
-                print("Warning: Background not found. Using Black Fallback.")
-                bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=duration)
-            elif bg_type == "video":
-                # Loop video if shorter than audio
-                bg_clip = VideoFileClip(bg_path, audio=False)
-                if bg_clip.duration < duration:
-                    bg_clip = vfx.loop(bg_clip, duration=duration)
-                else:
-                    bg_clip = bg_clip.subclip(0, duration)
-                bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
-            else:
-                # Image with Pan/Zoom
-                img = ImageClip(bg_path).set_duration(duration)
-                # Subtle zoom effect
-                bg_clip = img.resize(lambda t: 1 + 0.02 * t) 
-            # 2. Build Sequence from Segments
+            # 2. Build Sequence from Segments (Define Duration First)
             # segments = [{"audio": path, "image": path}, ...]
             if isinstance(overlay_path, list) and len(overlay_path) > 0 and isinstance(overlay_path[0], dict):
                 # New Segment Logic
@@ -86,9 +69,27 @@ class VideoEditor:
                 
                 overlay_clip = ImageClip(img_path, duration=duration)
                 overlay_clip = overlay_clip.resize(newsize=(1080, 1920))
-
+            
             # Position Center
             overlay_clip = overlay_clip.set_position("center")
+
+            # 1. Background Layer (Full Duration)
+            if not bg_path or not os.path.exists(bg_path):
+                print("Warning: Background not found. Using Black Fallback.")
+                bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=duration)
+            elif bg_type == "video":
+                # Loop video if shorter than audio
+                bg_clip = VideoFileClip(bg_path, audio=False)
+                if bg_clip.duration < duration:
+                    bg_clip = vfx.loop(bg_clip, duration=duration)
+                else:
+                    bg_clip = bg_clip.subclip(0, duration)
+                bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
+            else:
+                # Image with Pan/Zoom
+                img = ImageClip(bg_path).set_duration(duration)
+                # Subtle zoom effect
+                bg_clip = img.resize(lambda t: 1 + 0.02 * t)
 
             # 4. Composite
             print("Compositing Layers...")
