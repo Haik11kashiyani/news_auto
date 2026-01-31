@@ -148,17 +148,17 @@ class VisualGenerator:
     <div class="news-card" id="mainCard">
         <div class="card-header">
             <div class="brand-pill live-pulse">NEWSROOM</div>
-            <div class="topic-label" id="headline-label">TOP STORY</div>
+            <div class="topic-label" id="headline-label">{{LABEL}}</div>
         </div>
         
         <div class="headline-main" id="headline-display">
-            <!-- Text injected via JS -->
+            {{HEADLINE}}
         </div>
 
         <div class="separator"></div>
 
         <div class="summary-text" id="summary-display">
-            <!-- Text injected via JS -->
+            {{SUMMARY}}
         </div>
 
         <div class="card-footer">
@@ -167,6 +167,7 @@ class VisualGenerator:
 
     <script>
         function wrapWords(str) {
+            if (!str) return "";
             return str.split(' ').map(word => `<span class="word">${word}</span>`).join('');
         }
         
@@ -174,11 +175,17 @@ class VisualGenerator:
             return str.split('').map(char => `<span class="char">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
         }
 
-        function setOverlayText(headline, summary, label) {
-            // 1. Inject Content with Spans for Animation
-            document.getElementById('headline-display').innerHTML = wrapWords(headline);
-            document.getElementById('summary-display').innerHTML = wrapWords(summary);
-            document.getElementById('headline-label').innerText = label;
+        function animateContent() {
+            // 1. Get current content
+            const hlNode = document.getElementById('headline-display');
+            const smNode = document.getElementById('summary-display');
+            
+            const hlText = hlNode.innerText;
+            const smText = smNode.innerText;
+            
+            // 2. Wrap for animation
+            hlNode.innerHTML = wrapWords(hlText);
+            smNode.innerHTML = wrapWords(smText);
 
             // GSAP Animations
             const tl = gsap.timeline();
@@ -211,8 +218,8 @@ class VisualGenerator:
                 ease: "power2.out" 
             }, "-=0.2");
 
-            // 6. Footer Slide Up - REMOVED TICKER FROM MAIN CARD
-            // tl.from(".card-footer", { duration: 0.5, y: 30, opacity: 0, ease: "power2.out" }, "-=0.3");
+            // 6. Footer Slide Up
+            tl.from(".card-footer", { duration: 0.5, y: 30, opacity: 0, ease: "power2.out" }, "-=0.3");
         }
         
         // Initial set (hidden)
@@ -246,12 +253,7 @@ class VisualGenerator:
     </style>
 </head>
 <body>
-    <div class="ticker-box" id="ticker-content">Loading...</div>
-    <script>
-        function setTicker(text) {
-            document.getElementById('ticker-content').innerText = text + "   ///   " + text + "   ///   " + text;
-        }
-    </script>
+    <div class="ticker-box" id="ticker-content">{{TICKER_TEXT}}</div>
 </body>
 </html>
     """
@@ -325,6 +327,7 @@ class VisualGenerator:
         """
         Captures the premium Center Card overlay with GSAP animations.
         """
+        import html
         
         with sync_playwright() as p:
             # CI/Linux often requires --no-sandbox
@@ -335,25 +338,22 @@ class VisualGenerator:
             page.on("console", lambda msg: print(f"PAGE LOG: {msg.text}"))
             page.on("pageerror", lambda exc: print(f"PAGE ERROR: {exc}"))
 
-            # DIRECT INJECTION
-            print("DEBUG: Setting page content directly...")
-            page.set_content(self.HTML_TEMPLATE, wait_until="load") # Wait for load (scripts)
-            
-            # Prepare arguments safely
-            safe_headline = headline or "Top Story"
-            safe_summary = summary_text or "Loading..."
+            # BAKE CONTENT INTO HTML (No JS Injection fragility)
+            print("DEBUG: Baking content into HTML...")
+            safe_headline = html.escape(headline or "Top Story")
+            safe_summary = html.escape(summary_text or "Loading...")
             label = self._build_label(headline or "")
+            safe_label = html.escape(label)
+
+            final_html = self.HTML_TEMPLATE.replace("{{HEADLINE}}", safe_headline)\
+                                           .replace("{{SUMMARY}}", safe_summary)\
+                                           .replace("{{LABEL}}", safe_label)
+
+            page.set_content(final_html, wait_until="load")
             
-            # Trigger setup AND Animation safely
-            # We define a wrapper in JS to handle the call easily or just call direct
-            print("DEBUG: Calling setOverlayText...")
-            page.evaluate("""([h, s, l]) => {
-                try {
-                    setOverlayText(h, s, l);
-                } catch (e) {
-                    console.error("setOverlayText Failed: " + e.toString());
-                }
-            }""", [safe_headline, safe_summary, label])
+            # Trigger setup AND Animation
+            print("DEBUG: Calling animateContent via JS...")
+            page.evaluate("try { animateContent(); } catch(e) { console.error(e); }")
             
             # WAIT FOR GSAP ANIMATION TO COMPLETE
             # Animation duration sums to ~1.5s total including offsets. 
@@ -379,13 +379,17 @@ class VisualGenerator:
         """
         Generates a wide image containing the ticker text for scrolling.
         """
+        import html
         with sync_playwright() as p:
             browser = p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
             page = browser.new_page() # Default size
             
-            page.set_content(self.TICKER_TEMPLATE)
-            safe_text = (text or "BREAKING NEWS").replace("'", "\\'").replace('"', '\\"')
-            page.evaluate(f"setTicker('{safe_text}')")
+            # BAKE CONTENT
+            safe_text = html.escape(text or "BREAKING NEWS")
+            full_text = f"{safe_text}   ///   {safe_text}   ///   {safe_text}"
+            final_html = self.TICKER_TEMPLATE.replace("{{TICKER_TEXT}}", full_text)
+            
+            page.set_content(final_html)
             
             # Element handle
             element = page.query_selector("#ticker-content")
