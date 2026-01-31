@@ -132,42 +132,54 @@ Rules:
 - Tone: Urgent, factual, engaging.
 """
 
-        try:
-            # Add delay to avoid per-minute rate limits
-            time.sleep(2) 
+        # RETRY LOGIC with Exponential Backoff
+        max_retries = 3
+        base_delay = 10  # seconds
+        
+        url = f"{self.base_url}/{version}/models/{model_name}:generateContent?key={self.api_key}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
-            url = f"{self.base_url}/{version}/models/{model_name}:generateContent?key={self.api_key}"
-            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        for attempt in range(max_retries):
+            try:
+                # Pre-call delay (longer on retries)
+                wait_time = base_delay * (2 ** attempt)  # 10s, 20s, 40s
+                print(f"[Gemini] Attempt {attempt + 1}/{max_retries}, waiting {wait_time}s...")
+                time.sleep(wait_time)
 
-            response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+                response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
 
-            if response.status_code == 200:
-                result = response.json()
-                raw_text = result['candidates'][0]['content']['parts'][0]['text']
-                clean_text = raw_text.replace('```json', '').replace('```', '').strip()
-                data = json.loads(clean_text)
+                if response.status_code == 200:
+                    result = response.json()
+                    raw_text = result['candidates'][0]['content']['parts'][0]['text']
+                    clean_text = raw_text.replace('```json', '').replace('```', '').strip()
+                    data = json.loads(clean_text)
 
-                chosen_idx = int(data.get("chosen_index", 0))
-                if chosen_idx < 0 or chosen_idx >= len(articles):
-                    chosen_idx = 0
+                    chosen_idx = int(data.get("chosen_index", 0))
+                    if chosen_idx < 0 or chosen_idx >= len(articles):
+                        chosen_idx = 0
 
-                chosen_article = articles[chosen_idx]
-                # The script is the rest of the data (without chosen_index)
-                script = {k: v for k, v in data.items() if k != "chosen_index"}
+                    chosen_article = articles[chosen_idx]
+                    script = {k: v for k, v in data.items() if k != "chosen_index"}
+                    
+                    print(f"[Gemini] Success on attempt {attempt + 1}")
+                    return {"chosen_article": chosen_article, "script": script}
 
-                return {"chosen_article": chosen_article, "script": script}
+                elif response.status_code == 429:
+                    print(f"[Gemini] Rate limited (429). Will retry after backoff...")
+                    # Continue to next iteration (retry with longer delay)
+                    continue
+                else:
+                    print(f"[Gemini] Error ({response.status_code}): {response.text}")
+                    # Non-rate-limit error, try again
+                    continue
 
-            elif response.status_code == 429:
-                self.gemini_disabled = True
-                print("Gemini quota exhausted (429). Using backup.")
-                return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
-            else:
-                print(f"API Error ({response.status_code}): {response.text}")
-                return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+            except Exception as e:
+                print(f"[Gemini] Exception: {e}")
+                continue
 
-        except Exception as e:
-            print(f"Exception in pick_and_generate: {e}")
-            return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+        # All retries exhausted - use backup
+        print("[Gemini] All retries failed. Using backup template.")
+        return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
 
     def generate_script(self, news_article):
         # If Gemini is disabled (quota hit or no key), go straight to backup.
