@@ -161,6 +161,20 @@ Rules:
                     chosen_article = articles[chosen_idx]
                     script = {k: v for k, v in data.items() if k != "chosen_index"}
                     
+                    # CLEAN THE SCRIPT SEGMENTS AT SOURCE
+                    if "segments" in script:
+                        import re
+                        for seg in script["segments"]:
+                            if "script" in seg:
+                                s = seg["script"]
+                                # Remove Voice:/Narrator:/etc prefixes
+                                s = re.sub(r'^(Voice|Narrator|Speaker|Audio|VO)\s*[:=\-]?\s*', '', s, flags=re.IGNORECASE)
+                                # Remove emotion tags
+                                s = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', s, flags=re.IGNORECASE)
+                                # Clean double spaces
+                                s = re.sub(r'\s+', ' ', s).strip()
+                                seg["script"] = s
+                    
                     print(f"[Gemini] Success on attempt {attempt + 1}")
                     return {"chosen_article": chosen_article, "script": script}
 
