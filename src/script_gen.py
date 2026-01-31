@@ -161,8 +161,18 @@ Rules for visual text:
         # Prioritize full scraped content -> description -> fallback
         content_source = article.get('full_content', '') or article.get('description', '') or "We are tracking this developing story."
         
-        # heuristic cleaning
-        content_source = content_source.replace("<p>", "").replace("</p>", "").replace("<b>", "").replace("</b>", "").replace("\n", " ")
+        # Robust HTML cleaning using BeautifulSoup
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content_source, "html.parser")
+            content_source = soup.get_text(separator=" ", strip=True)
+        except ImportError:
+            # Fallback if bs4 fails (though it should be installed)
+            content_source = content_source.replace("<p>", "").replace("</p>", "").replace("<b>", "").replace("</b>", "").replace("\n", " ")
+        except Exception as e:
+            print(f"Error cleaning HTML: {e}")
+            # Minimal cleanup
+            content_source = content_source.replace("<", " ").replace(">", " ")
         
         full_title = str(title)
         
