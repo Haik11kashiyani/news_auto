@@ -86,10 +86,26 @@ class VideoEditor:
                     bg_clip = bg_clip.subclip(0, duration)
                 bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
             else:
-                # Image with Pan/Zoom
-                img = ImageClip(bg_path).set_duration(duration)
-                # Subtle zoom effect
-                bg_clip = img.resize(lambda t: 1 + 0.02 * t)
+                # Image Logic: Dynamic "Viral" Style (Blurred BG + Sharp FG)
+                # This handles small images by filling screen with blur.
+                
+                # 1. Background: Zoomed & Blurred to fill screen
+                bg_img_clip = ImageClip(bg_path).set_duration(duration)
+                bg_blurred = bg_img_clip.resize(height=1920) # Resize to height first
+                if bg_blurred.w < 1080:
+                     bg_blurred = bg_blurred.resize(width=1080) # Ensure it covers width
+                bg_blurred = bg_blurred.crop(x1=0, y1=0, width=1080, height=1920).set_position("center")
+                
+                # Apply Blur (MoviePy doesn't have native fast blur in older versions, 
+                # but we can simulate or use resize trick). 
+                # Resize down to 5% then back up is a cheap blur.
+                bg_blurred = bg_blurred.resize(0.05).resize(20) 
+                
+                # 2. Foreground: Sharp, fit width 1080, centered
+                fg_img_clip = ImageClip(bg_path).set_duration(duration).resize(width=1080).set_position("center")
+                
+                # 3. Composite Background
+                bg_clip = CompositeVideoClip([bg_blurred, fg_img_clip], size=(1080,1920))
 
             # 4. Composite
             print("Compositing Layers...")
