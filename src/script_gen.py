@@ -265,10 +265,26 @@ Rules for visual text:
     def _backup_template(self, article):
         """
         Last resort: Returns a valid script object so the pipeline DOES NOT CRASH.
-        Enhanced to use FULL CONTENT.
+        Enhanced to use FULL CONTENT and fix truncated headlines.
         """
         print("Using BACKUP TEMPLATE script.")
         title = article.get('title', 'Breaking News')
+        
+        # FIX: Detect and clean truncated titles (RSS feeds often have ... or …)
+        if '...' in title or '…' in title or title.endswith("'"):
+            # Title is truncated, try to get a cleaner one from content
+            print("[Backup] Detected truncated title, extracting from content...")
+            content = article.get('full_content', '') or article.get('description', '')
+            if content:
+                # Take first sentence as headline (up to first period or 100 chars)
+                first_sentence = content.split('.')[0].strip()
+                if len(first_sentence) > 20 and len(first_sentence) < 150:
+                    title = first_sentence
+                else:
+                    # Just clean the existing title
+                    title = title.replace('...', '').replace('…', '').strip()
+                    if title.endswith("'") or title.endswith(":"):
+                        title = title[:-1].strip()
         
         # Prioritize full scraped content -> description -> fallback
         content_source = article.get('full_content', '') or article.get('description', '') or "We are tracking this developing story."
@@ -319,7 +335,7 @@ Rules for visual text:
              segments = [{"visual": content_source[:100], "script": content_source}]
 
         return {
-            "headline": full_title,  # No limit
+            "headline": full_title,  # No limit, now cleaned
             "segments": segments,
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",
