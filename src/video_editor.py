@@ -17,10 +17,9 @@ class VideoEditor:
             output_path = os.path.join(self.output_dir, output_filename)
             print(f"Assembling video: {output_path}")
             
-            # Load Audio First to get duration
-            audio = AudioFileClip(audio_path)
-            duration = audio.duration
-            print(f"Audio Duration: {duration}s")
+            # 1. Output Path
+            output_path = os.path.join(self.output_dir, output_filename)
+            print(f"Assembling video: {output_path}")
 
             # 1. Background Layer (Full Duration)
             if not bg_path or not os.path.exists(bg_path):
@@ -39,25 +38,54 @@ class VideoEditor:
                 img = ImageClip(bg_path).set_duration(duration)
                 # Subtle zoom effect
                 bg_clip = img.resize(lambda t: 1 + 0.02 * t) 
-            # Use strict ImageClip for the static PNG sequence
-            try:
+            # 2. Build Sequence from Segments
+            # segments = [{"audio": path, "image": path}, ...]
+            if isinstance(overlay_path, list) and len(overlay_path) > 0 and isinstance(overlay_path[0], dict):
+                # New Segment Logic
+                clips = []
+                audio_clips = []
+                
+                print(f"Assembling {len(overlay_path)} synced segments...")
+                
+                for seg in overlay_path:
+                    a_path = seg.get("audio")
+                    i_path = seg.get("image")
+                    
+                    if not a_path or not i_path:
+                        continue
+                        
+                    # Load Audio
+                    ac = AudioFileClip(a_path)
+                    seg_duration = ac.duration
+                    audio_clips.append(ac)
+                    
+                    # Load Image & Set Duration
+                    ic = ImageClip(i_path).set_duration(seg_duration).resize(newsize=(1080, 1920))
+                    clips.append(ic)
+                
+                if not clips:
+                    print("No valid segments found.")
+                    return None
+                    
+                # Concatenate
+                overlay_clip = concatenate_videoclips(clips)
+                final_audio = concatenate_audioclips(audio_clips)
+                duration = final_audio.duration
+                
+            else:
+                # Fallback / Single Image Logic
                 if isinstance(overlay_path, list):
-                    # Multi-Slide logic: Split total duration equally
-                    num_slides = len(overlay_path)
-                    slide_duration = duration / num_slides
-                    clips = []
-                    for path in overlay_path:
-                        clip = ImageClip(path).set_duration(slide_duration).resize(newsize=(1080, 1920))
-                        clips.append(clip)
-                    overlay_clip = concatenate_videoclips(clips)
+                     # Legacy fallback
+                     img_path = overlay_path[0]
                 else:
-                    # Single Slide logic
-                    overlay_clip = ImageClip(overlay_path, duration=duration)
-                    # Resize to fit just in case, though it should match viewport
-                    overlay_clip = overlay_clip.resize(newsize=(1080, 1920))
-            except Exception as e:
-                print(f"Failed to load overlay image(s): {e}")
-                return None
+                     img_path = overlay_path
+
+                # Load Audio First to get duration
+                final_audio = AudioFileClip(audio_path)
+                duration = final_audio.duration
+                
+                overlay_clip = ImageClip(img_path, duration=duration)
+                overlay_clip = overlay_clip.resize(newsize=(1080, 1920))
 
             # Position Center
             overlay_clip = overlay_clip.set_position("center")
@@ -68,7 +96,9 @@ class VideoEditor:
             # Using 'compose' method or just list
             final_video = CompositeVideoClip([bg_clip, overlay_clip], size=(1080,1920))
             final_video = final_video.set_duration(duration)
-            final_video = final_video.set_audio(audio)
+            final_video = CompositeVideoClip([bg_clip, overlay_clip], size=(1080,1920))
+            final_video = final_video.set_duration(duration)
+            final_video = final_video.set_audio(final_audio)
             
             # 5. Write Output
             os.makedirs(self.output_dir, exist_ok=True)

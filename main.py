@@ -58,46 +58,49 @@ def main():
         print("Failed to generate script.")
         return
     
-    # 4. Generate Audio
-    print("--- 3. Generating Audio ---")
-    audio_path = f"generated/audio_{article['article_id']}.mp3"
-    voice_script = script_data.get("voice_script", "")
-    # Strip speaking instructions like [pause] for TTS if needed, or leave if engine supports it.
-    # Play.ht v2 handles some, but let's clean for generic TTS
-    clean_voice_text = voice_script.replace("[pause]", "...").replace("[URGENT]", "")
-    
-    if not audio_gen.generate_audio(clean_voice_text, audio_path):
-        print("Failed to generate audio.")
-        return
-
-    # 4. Generate Visuals (Multi-Slide)
-    print("--- 4. Generating Visuals (Multi-Slide) ---")
+    # 4. Generate Content Per Segment (Synced)
+    print("--- 4. Generating Synced Segments ---")
     headline_text = script_data.get("headline", "BREAKING NEWS")
     ticker_text = script_data.get("ticker_text", "LIVE UPDATES")
+    segments = script_data.get("segments", [])
     
-    # Get segments or fallback to one big summary
-    visual_segments = script_data.get("visual_segments")
-    if not visual_segments:
-        # Fallback if AI didn't return list
-        single_summary = script_data.get("story_summary") or script_data.get("sub_headline") or "See video for details."
-        visual_segments = [single_summary]
+    if not segments:
+         print("Error: No segments found in script data.")
+         return
 
-    overlay_paths = []
-    print(f"Generating {len(visual_segments)} slides...")
+    final_segments = []
     
-    for idx, segment in enumerate(visual_segments):
-        filename = f"slide_{idx}.png"
-        path = visual_gen.generate_overlay(
+    for idx, seg in enumerate(segments):
+        print(f"Processing Segment {idx+1}/{len(segments)}...")
+        
+        # 4a. Audio
+        audio_path = f"generated/segment_{article['article_id']}_{idx}.mp3"
+        script_text = seg.get("script", "")
+        # Remove speaking instructions if any
+        clean_text = script_text.replace("[pause]", "...").replace("[URGENT]", "")
+        
+        if not audio_gen.generate_audio(clean_text, audio_path):
+            print(f"Failed audio for segment {idx}")
+            continue
+            
+        # 4b. Visual
+        visual_text = seg.get("visual", "")
+        img_path = f"slide_{idx}.png"
+        full_img_path = visual_gen.generate_overlay(
             headline=headline_text,
             ticker_text=ticker_text,
-            summary_text=segment,
-            filename=filename
+            summary_text=visual_text,
+            filename=img_path
         )
-        if path:
-            overlay_paths.append(path)
-    
-    if not overlay_paths:
-        print("Error: No overlays generated.")
+        
+        if full_img_path:
+            final_segments.append({
+                "audio": audio_path,
+                "image": full_img_path
+            })
+            
+    if not final_segments:
+        print("Error: No valid segments generated.")
         sys.exit(1)
 
     # Get Background (Video or Image)
@@ -114,8 +117,9 @@ def main():
     # Ensure dir exists
     os.makedirs(os.path.dirname(output_abs_path), exist_ok=True)
 
-    # Call editor with LIST of overlays
-    final_path = editor.assemble_video(bg_path, bg_type, overlay_paths, audio_path, output_abs_path)
+    # Call editor with LIST of SEGMENT DICTS
+    # Note: audio_path argument (4th arg) is now ignored/optional in new logic or we can pass None
+    final_path = editor.assemble_video(bg_path, bg_type, final_segments, None, output_abs_path)
     
     if final_path and os.path.exists(final_path):
         print(f"SUCCESS: Video generated at {final_path}")
