@@ -331,25 +331,35 @@ class VisualGenerator:
             browser = p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
             page = browser.new_page(viewport={"width": 1080, "height": 1920})
             
+            # Console listener for debugging JS errors
+            page.on("console", lambda msg: print(f"PAGE LOG: {msg.text}"))
+            page.on("pageerror", lambda exc: print(f"PAGE ERROR: {exc}"))
+
             # DIRECT INJECTION
             print("DEBUG: Setting page content directly...")
-            page.set_content(self.HTML_TEMPLATE, wait_until="networkidle")
+            page.set_content(self.HTML_TEMPLATE, wait_until="load") # Wait for load (scripts)
             
-            # Escape quotes
-            safe_headline = (headline or "Top Story").replace("'", "\\'").replace('"', '\\"')
-            safe_ticker = (ticker_text or "LATEST NEWS").replace("'", "\\'").replace('"', '\\"')
-            safe_summary = (summary_text or "Loading...").replace("'", "\\'").replace('"', '\\"')
+            # Prepare arguments safely
+            safe_headline = headline or "Top Story"
+            safe_summary = summary_text or "Loading..."
             label = self._build_label(headline or "")
-            safe_label = label.replace("'", "\\'").replace('"', '\\"')
             
-            # Trigger setup AND Animation
-            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_summary}', '{safe_label}')")
+            # Trigger setup AND Animation safely
+            # We define a wrapper in JS to handle the call easily or just call direct
+            print("DEBUG: Calling setOverlayText...")
+            page.evaluate("""([h, s, l]) => {
+                try {
+                    setOverlayText(h, s, l);
+                } catch (e) {
+                    console.error("setOverlayText Failed: " + e.toString());
+                }
+            }""", [safe_headline, safe_summary, label])
             
             # WAIT FOR GSAP ANIMATION TO COMPLETE
             # Animation duration sums to ~1.5s total including offsets. 
-            # We wait 2.5s to be safe and capture the final settled state.
+            # We wait 3.0s to be safe and capture the final settled state.
             print("Waiting for GSAP animations to settle...")
-            time.sleep(2.5)
+            time.sleep(3.0)
 
             # Capture Static Overlay (Final State)
             output_image_path = os.path.join(self.generated_dir, filename)
