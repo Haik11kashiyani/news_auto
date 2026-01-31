@@ -1,7 +1,7 @@
 requests
 python-dotenv
 playwright
-moviepy>=1.0.3
+moviepy<2.0.0
 Pillow<10.0.0
 gTTS
 edge-tts
