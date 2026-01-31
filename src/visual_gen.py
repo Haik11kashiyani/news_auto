@@ -68,7 +68,7 @@ class VisualGenerator:
 
         /* CONTENT SECTION */
         .headline-main {
-            font-size: 64px;
+            font-size: 72px; /* Maximum Impact */
             line-height: 1.1;
             font-weight: 800;
             color: #ffffff;
@@ -128,24 +128,37 @@ class VisualGenerator:
             100% { transform: translate3d(-100%, 0, 0); }
         }
 
+        /* ANIMATION CLASSES */
+        .word { display: inline-block; opacity: 0; transform: translateY(20px); will-change: transform, opacity; margin-right: 0.2em; }
+        .char { display: inline-block; opacity: 0; transform: translateY(10px); will-change: transform, opacity; }
+        
+        .live-pulse {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 51, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 0, 51, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 51, 0); }
+        }
+
     </style>
 </head>
 <body>
 
     <div class="news-card" id="mainCard">
         <div class="card-header">
-            <div class="brand-pill">NEWSROOM</div>
+            <div class="brand-pill live-pulse">NEWSROOM</div>
             <div class="topic-label" id="headline-label">TOP STORY</div>
         </div>
         
         <div class="headline-main" id="headline-display">
-            Loading Headline...
+            <!-- Text injected via JS -->
         </div>
 
         <div class="separator"></div>
 
         <div class="summary-text" id="summary-display">
-            Loading summary content...
+            <!-- Text injected via JS -->
         </div>
 
         <div class="card-footer">
@@ -158,28 +171,58 @@ class VisualGenerator:
     </div>
 
     <script>
+        function wrapWords(str) {
+            return str.split(' ').map(word => `<span class="word">${word}</span>`).join('');
+        }
+        
+        function wrapChars(str) {
+            return str.split('').map(char => `<span class="char">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
+        }
+
         function setOverlayText(headline, summary, label, ticker) {
-            document.getElementById('headline-display').innerText = headline;
-            document.getElementById('summary-display').innerText = summary;
+            // 1. Inject Content with Spans for Animation
+            document.getElementById('headline-display').innerHTML = wrapWords(headline);
+            document.getElementById('summary-display').innerHTML = wrapWords(summary);
             document.getElementById('headline-label').innerText = label;
-            document.getElementById('ticker-display').innerText = ticker + "   ///   " + ticker + "   ///   " + ticker;
+            document.getElementById('ticker-display').innerText = ticker + "   ///   " + ticker + "   ///   " + ticker + "   ///   " + ticker;
 
             // GSAP Animations
             const tl = gsap.timeline();
             
-            // 1. Card entry (scale up + fade)
-            tl.to("#mainCard", { duration: 0.8, opacity: 1, scale: 1, ease: "power3.out" });
+            // 1. Card Entry (Pop in)
+            tl.to("#mainCard", { duration: 0.6, opacity: 1, scale: 1, ease: "back.out(1.2)" });
             
-            // 2. Elements stagger in
-            tl.from(".card-header", { duration: 0.5, y: -20, opacity: 0, ease: "power2.out" }, "-=0.4");
-            tl.from(".headline-main", { duration: 0.6, x: -30, opacity: 0, ease: "power2.out" }, "-=0.3");
-            tl.from(".separator", { duration: 0.4, width: 0, ease: "power2.out" }, "-=0.3");
-            tl.from(".summary-text", { duration: 0.8, y: 20, opacity: 0, ease: "power2.out" }, "-=0.2");
-            tl.from(".card-footer", { duration: 0.5, y: 20, opacity: 0, ease: "power2.out" }, "-=0.4");
+            // 2. Header Elements
+            tl.from(".brand-pill", { duration: 0.4, y: -20, opacity: 0, ease: "power2.out" }, "-=0.2");
+            tl.from("#headline-label", { duration: 0.4, x: 20, opacity: 0, ease: "power2.out" }, "-=0.3");
+
+            // 3. Headline: Staggered Word Reveal
+            tl.to("#headline-display .word", { 
+                duration: 0.6, 
+                opacity: 1, 
+                y: 0, 
+                stagger: 0.05, 
+                ease: "power3.out" 
+            }, "-=0.2");
+
+            // 4. Separator expand
+            tl.from(".separator", { duration: 0.4, width: 0, opacity: 0, ease: "power2.out" }, "-=0.4");
+
+            // 5. Summary: Staggered Word Reveal (Fast)
+            tl.to("#summary-display .word", { 
+                duration: 0.5, 
+                opacity: 1, 
+                y: 0, 
+                stagger: 0.02, 
+                ease: "power2.out" 
+            }, "-=0.2");
+
+            // 6. Footer Slide Up
+            tl.from(".card-footer", { duration: 0.5, y: 30, opacity: 0, ease: "power2.out" }, "-=0.3");
         }
         
         // Initial set (hidden)
-        gsap.set("#mainCard", { opacity: 0, scale: 0.9 });
+        gsap.set("#mainCard", { opacity: 0, scale: 0.95 });
     </script>
 </body>
 </html>
