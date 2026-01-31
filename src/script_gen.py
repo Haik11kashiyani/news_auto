@@ -89,6 +89,7 @@ class ScriptGenerator:
         # PREFER FULL SCRAPED CONTENT
         description = news_article.get('full_content', '') or news_article.get('description', '') or news_article.get('content', '')[:500]
         
+        prompt_text = f"""
 You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).
 
 Strictly output JSON only, no extra text:
@@ -204,15 +205,7 @@ Rules for visual text:
             "video_search_keywords": ["news", "breaking"]
         }
 
-        return {
-            "headline": full_title[:100],  # Increased limit, no forced '...'
-            "visual_segments": [p1, p2, p3],
-            "voice_script": f"{full_title}. {description}. This concludes the update.",
-            "ticker_text": f"BREAKING: {full_title}",
-            "viral_description": f"Breaking news: {full_title} #shorts #news",
-            "viral_tags": ["#breaking", "#news"],
-            "video_search_keywords": ["news", "breaking"]
-        }
+
 
     def pick_best_article(self, articles):
         """
