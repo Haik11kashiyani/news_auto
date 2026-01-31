@@ -89,41 +89,30 @@ class ScriptGenerator:
         # PREFER FULL SCRAPED CONTENT
         description = news_article.get('full_content', '') or news_article.get('description', '') or news_article.get('content', '')[:500]
         
-        prompt_text = f"""
 You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).
 
 Strictly output JSON only, no extra text:
 {{
     "headline": "Viral, curiosity-driving title (max 85 chars)",
-    "visual_segments": [
-        "Slide 1 text: The main Event/Hook (Max 15 words)",
-        "Slide 2 text: Key Detail/Context (Max 15 words)",
-        "Slide 3 text: The 'Why' or Consequence (Max 15 words)"
-    ],
-    "voice_script": "Full spoken script. DENSE, FACTUAL, EMOTIONAL. No filler.",
     "ticker_text": "Short, punchy ticker line",
+    "segments": [
+        {{ "visual": "Slide 1 text (Max 15 words)", "script": "Spoken sentence for this slide." }},
+        {{ "visual": "Slide 2 text (Max 15 words)", "script": "Spoken sentence for this slide." }},
+        {{ "visual": "Slide 3 text (Max 15 words)", "script": "Spoken sentence for this slide." }}
+    ],
     "viral_description": "YouTube description",
     "viral_tags": ["#tag1", "..."],
     "video_search_keywords": ["keyword1", "keyword2"]
 }}
 
-Rules for voice_script:
-- **NO FILLER**: NEVER say "We are tracking", "Developing story", "Here is what we know".
-- Start IMMEDIATELY with the news. "Trump just signed X..."
-- Tone: Urgent, Insider, Fast-paced. Imagine a friend telling you a secret.
+Rules for "segments":
+- Create 3-5 segments that flow logically.
+- **SYNC IS CRITICAL**: The "script" text MUST match exactly what should be spoken while the "visual" text is shown.
+- **NO FILLER**: Start immediately with the news.
+- Tone: Urgent, Insider, Fast-paced.
 
-Rules for visual_segments:
-- These are the text chunks that will appear on screen sequentially.
-- They must NOT be subtitles. They must be **Visual Headlines**.
-- Slide 1: The WHAT.
-- Slide 2: The HOW/DETAILS.
-- Slide 3: The IMPACT/WHY.
-
-Rules for on-screen text:
-- "headline": Max 70 chars.
-- "ticker_text": 1 short loopable line.
-
-Now return ONLY the JSON object as specified above.
+Rules for visual text:
+- NOT subtitles. Visual Headlines. Large font, few words.
         """
 
         # 3. Call API
@@ -177,15 +166,18 @@ Now return ONLY the JSON object as specified above.
         full_title = str(title)
         
         # Build segments of roughly 150 chars (approx 20-30 words)
-        visual_segments = []
+        segments = []
         words = content_source.split(" ")
         current_segment = []
         current_len = 0
         
         for word in words:
-            if current_len + len(word) > 140: # conservative limit for card
-                # close segment
-                visual_segments.append(" ".join(current_segment))
+            if current_len + len(word) > 100: # Shorter visual segments
+                text = " ".join(current_segment)
+                segments.append({
+                    "visual": text,
+                    "script": text # Verify if script should be longer or same, keeping same for simple backup
+                })
                 current_segment = [word]
                 current_len = len(word)
             else:
@@ -193,19 +185,19 @@ Now return ONLY the JSON object as specified above.
                 current_len += len(word) + 1
         
         if current_segment:
-            visual_segments.append(" ".join(current_segment))
+            text = " ".join(current_segment)
+            segments.append({"visual": text, "script": text})
             
         # Limit to max 5 segments for video length sanity, but better than 3 fixed
-        visual_segments = visual_segments[:6] 
+        segments = segments[:5] 
         
         # If very short, ensure at least 1
-        if not visual_segments:
-             visual_segments = [content_source[:140]]
+        if not segments:
+             segments = [{"visual": content_source[:100], "script": content_source}]
 
         return {
-            "headline": full_title[:100],  
-            "visual_segments": visual_segments,
-            "voice_script": f"{full_title}. {content_source}. This concludes the update.",
+            "headline": full_title[:85],  
+            "segments": segments,
             "ticker_text": f"BREAKING: {full_title}",
             "viral_description": f"Breaking news: {full_title} #shorts #news",
             "viral_tags": ["#breaking", "#news"],

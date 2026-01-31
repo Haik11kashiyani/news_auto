@@ -59,12 +59,12 @@ class AudioGenerator:
         normalized = normalized.replace("[pause]", " <break time=\"450ms\"/> ")
         normalized = re.sub(r"\.\.\.+", " <break time=\"250ms\"/> ", normalized)
 
-        # Add slight prosody for news-anchor vibe: a bit faster, medium pitch.
+        # Remove artificial prosody to fix "shaking" voice issues.
         body = esc(normalized)
         return (
             f"<speak>"
             f"<voice name=\"{esc(self.edge_voice)}\">"
-            f"<prosody rate=\"+8%\" pitch=\"+2%\">{body}</prosody>"
+            f"{body}" 
             f"</voice>"
             f"</speak>"
         )
@@ -140,6 +140,17 @@ class AudioGenerator:
         except Exception as e:
             print(f"gTTS fallback failed: {e}")
             return None
+
+    def get_audio_duration(self, audio_path):
+        try:
+            from moviepy.editor import AudioFileClip
+            clip = AudioFileClip(audio_path)
+            duration = clip.duration
+            clip.close()
+            return duration
+        except Exception as e:
+            print(f"Error getting duration: {e}")
+            return 0
 
 if __name__ == "__main__":
     gen = AudioGenerator()

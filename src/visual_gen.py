@@ -24,12 +24,12 @@ class VisualGenerator:
 
         /* MAIN CARD */
         .news-card {
-            width: 900px;
-            background: rgba(10, 10, 10, 0.85); /* Dark card */
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-radius: 40px;
-            padding: 60px 50px;
+            width: 940px; /* Wider */
+            background: rgba(15, 15, 15, 0.90); /* Darker, more premium */
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(40px); /* Stronger blur */
+            border-radius: 50px;
+            padding: 70px 60px;
             box-shadow: 0 30px 80px rgba(0,0,0,0.8);
             display: flex;
             flex-direction: column;
@@ -88,12 +88,13 @@ class VisualGenerator:
             line-height: 1.4;
             color: #d0d0d0;
             font-weight: 400;
-            border-left: 6px solid #FF0033;
-            padding-left: 30px;
-            margin-top: 10px;
-            min-height: 150px; /* Ensure space is reserved */
+            border-left: 8px solid #FF0033;
+            padding-left: 40px;
+            margin-top: 30px;
+            min-height: 500px; /* REQUEST: Make news div longer */
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Top align for long text */
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
         /* FOOTER / TICKER */
