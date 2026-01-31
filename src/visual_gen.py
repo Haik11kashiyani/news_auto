@@ -162,11 +162,6 @@ class VisualGenerator:
         </div>
 
         <div class="card-footer">
-             <div class="ticker-container">
-                 <div class="ticker-text" id="ticker-display">
-                     LIVE UPDATES /// BREAKING NEWS ///
-                 </div>
-             </div>
         </div>
     </div>
 
@@ -179,12 +174,11 @@ class VisualGenerator:
             return str.split('').map(char => `<span class="char">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
         }
 
-        function setOverlayText(headline, summary, label, ticker) {
+        function setOverlayText(headline, summary, label) {
             // 1. Inject Content with Spans for Animation
             document.getElementById('headline-display').innerHTML = wrapWords(headline);
             document.getElementById('summary-display').innerHTML = wrapWords(summary);
             document.getElementById('headline-label').innerText = label;
-            document.getElementById('ticker-display').innerText = ticker + "   ///   " + ticker + "   ///   " + ticker + "   ///   " + ticker;
 
             // GSAP Animations
             const tl = gsap.timeline();
@@ -217,12 +211,46 @@ class VisualGenerator:
                 ease: "power2.out" 
             }, "-=0.2");
 
-            // 6. Footer Slide Up
-            tl.from(".card-footer", { duration: 0.5, y: 30, opacity: 0, ease: "power2.out" }, "-=0.3");
+            // 6. Footer Slide Up - REMOVED TICKER FROM MAIN CARD
+            // tl.from(".card-footer", { duration: 0.5, y: 30, opacity: 0, ease: "power2.out" }, "-=0.3");
         }
         
         // Initial set (hidden)
         gsap.set("#mainCard", { opacity: 0, scale: 0.95 });
+    </script>
+</body>
+</html>
+    """
+
+    TICKER_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticker Strip</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; background: transparent; }
+        .ticker-box {
+            background: #FF0033; /* Red background for visibility */
+            color: #FFFFFF;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 32px;
+            padding: 15px 30px;
+            white-space: nowrap;
+            border-radius: 8px;
+            display: inline-block;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="ticker-box" id="ticker-content">Loading...</div>
+    <script>
+        function setTicker(text) {
+            document.getElementById('ticker-content').innerText = text + "   ///   " + text + "   ///   " + text;
+        }
     </script>
 </body>
 </html>
@@ -315,7 +343,7 @@ class VisualGenerator:
             safe_label = label.replace("'", "\\'").replace('"', '\\"')
             
             # Trigger setup AND Animation
-            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_summary}', '{safe_label}', '{safe_ticker}')")
+            page.evaluate(f"setOverlayText('{safe_headline}', '{safe_summary}', '{safe_label}')")
             
             # WAIT FOR GSAP ANIMATION TO COMPLETE
             # Animation duration sums to ~1.5s total including offsets. 
@@ -336,6 +364,27 @@ class VisualGenerator:
             browser.close()
             
         return output_image_path
+
+    def generate_ticker_image(self, text, filename="ticker_strip.png"):
+        """
+        Generates a wide image containing the ticker text for scrolling.
+        """
+        with sync_playwright() as p:
+            browser = p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
+            page = browser.new_page() # Default size
+            
+            page.set_content(self.TICKER_TEMPLATE)
+            safe_text = (text or "BREAKING NEWS").replace("'", "\\'").replace('"', '\\"')
+            page.evaluate(f"setTicker('{safe_text}')")
+            
+            # Element handle
+            element = page.query_selector("#ticker-content")
+            
+            output_image_path = os.path.join(self.generated_dir, filename)
+            element.screenshot(path=output_image_path, omit_background=True)
+            
+            browser.close()
+            return output_image_path
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

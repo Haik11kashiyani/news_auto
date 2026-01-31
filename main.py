@@ -93,10 +93,16 @@ def main():
             filename=img_path
         )
         
+        # 4c. Ticker (One time generation or per segment? Let's do per segment to allow updates if needed, but usually static)
+        # For now, consistent ticker text
+        ticker_path_name = f"ticker_{idx}.png"
+        ticker_full_path = visual_gen.generate_ticker_image(ticker_text, ticker_path_name)
+
         if full_img_path:
             final_segments.append({
                 "audio": audio_path,
-                "image": full_img_path
+                "image": full_img_path,
+                "ticker_image": ticker_full_path
             })
             
     if not final_segments:

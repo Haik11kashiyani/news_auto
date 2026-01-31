@@ -183,7 +183,7 @@ Rules for visual text:
         current_len = 0
         
         for word in words:
-            if current_len + len(word) > 100: # Shorter visual segments
+            if current_len + len(word) > 75: # Shorter visual segments for larger font
                 text = " ".join(current_segment)
                 segments.append({
                     "visual": text,
