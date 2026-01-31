@@ -69,6 +69,106 @@ class ScriptGenerator:
             print(f"Model discovery error: {e}")
             return None
 
+    def pick_and_generate_script(self, articles):
+        """
+        COMBINED: Picks the best article AND generates the video script in ONE Gemini call.
+        This avoids hitting per-minute rate limits by reducing API calls.
+        Returns: dict with 'chosen_article' and 'script' keys, or None on failure.
+        """
+        if not articles:
+            return None
+        if self.gemini_disabled or not self.api_key:
+            print("Gemini disabled. Using backup for first article.")
+            return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+
+        model_info = self._discover_model()
+        if not model_info:
+            print("No model available. Using backup.")
+            return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+
+        model_name, version = model_info
+        print(f"[COMBINED] Using Model: {model_name}")
+
+        # Build compact listing for the prompt
+        items_text = ""
+        for idx, art in enumerate(articles):
+            t = art.get("title", "") or ""
+            d = (art.get("full_content", "") or art.get("description", "") or "")[:300]
+            d = d.replace("\n", " ").strip()
+            items_text += f"[{idx}] {t}\n{d}\n\n"
+
+        prompt = f"""
+You are a **top tier Indian news curator and video script writer** for viral vertical videos (YouTube Shorts, Reels).
+
+## Task 1: Choose the BEST article
+Below are {len(articles)} news articles. Pick the ONE that will go most viral:
+
+{items_text}
+
+## Task 2: Generate Video Script for chosen article
+Create a clean video script using ONLY the actual news facts. Remove all:
+- Author names, publication metadata
+- "Voice:", "Narrator:", or any speaker tags
+- Filler words, promotional content
+- HTML tags, URLs
+
+Strictly output JSON only, no extra text:
+{{
+    "chosen_index": <0-based index of chosen article>,
+    "headline": "Full headline (NO truncation, NO ellipsis)",
+    "segments": [
+        {{ "visual": "Key point 1 (max 15 words)", "script": "Clean spoken sentence for this slide." }},
+        {{ "visual": "Key point 2 (max 15 words)", "script": "Clean spoken sentence for this slide." }},
+        {{ "visual": "Key point 3 (max 15 words)", "script": "Clean spoken sentence for this slide." }}
+    ],
+    "viral_description": "YouTube description",
+    "viral_tags": ["#tag1", "#tag2"]
+}}
+
+Rules:
+- "script" must be PURE spoken text. No metadata, no prefixes.
+- "headline" must be the COMPLETE headline, never cut off.
+- Create 3-5 segments covering the main story points.
+- Tone: Urgent, factual, engaging.
+"""
+
+        try:
+            # Add delay to avoid per-minute rate limits
+            time.sleep(2) 
+
+            url = f"{self.base_url}/{version}/models/{model_name}:generateContent?key={self.api_key}"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+            response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+
+            if response.status_code == 200:
+                result = response.json()
+                raw_text = result['candidates'][0]['content']['parts'][0]['text']
+                clean_text = raw_text.replace('```json', '').replace('```', '').strip()
+                data = json.loads(clean_text)
+
+                chosen_idx = int(data.get("chosen_index", 0))
+                if chosen_idx < 0 or chosen_idx >= len(articles):
+                    chosen_idx = 0
+
+                chosen_article = articles[chosen_idx]
+                # The script is the rest of the data (without chosen_index)
+                script = {k: v for k, v in data.items() if k != "chosen_index"}
+
+                return {"chosen_article": chosen_article, "script": script}
+
+            elif response.status_code == 429:
+                self.gemini_disabled = True
+                print("Gemini quota exhausted (429). Using backup.")
+                return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+            else:
+                print(f"API Error ({response.status_code}): {response.text}")
+                return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+
+        except Exception as e:
+            print(f"Exception in pick_and_generate: {e}")
+            return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
+
     def generate_script(self, news_article):
         # If Gemini is disabled (quota hit or no key), go straight to backup.
         if self.gemini_disabled or not self.api_key:

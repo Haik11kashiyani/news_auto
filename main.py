@@ -43,20 +43,18 @@ def main():
          print("No valid news items.")
          return
     
-    # Try AI-driven ranking first
-    article = script_gen.pick_best_article(selection_pool)
-    if article:
-        print(f"Processing (AI-picked top story): {article.get('title')}")
-    else:
-        article = random.choice(selection_pool)
-        print(f"Processing (Random fallback): {article.get('title')}")
-
-    # 3. Generate Content
-    print("--- 2. Generating Script ---")
-    script_data = script_gen.generate_script(article)
-    if not script_data:
-        print("Failed to generate script.")
+    # 3. COMBINED: Pick best article AND generate script in ONE Gemini call
+    print("--- 2. Picking Best Article & Generating Script (Combined) ---")
+    result = script_gen.pick_and_generate_script(selection_pool)
+    
+    if not result:
+        print("Failed to pick article or generate script.")
         return
+    
+    article = result["chosen_article"]
+    script_data = result["script"]
+    
+    print(f"Processing: {article.get('title')}")
     
     # 4. Generate Content Per Segment (Synced)
     print("--- 4. Generating Synced Segments ---")
