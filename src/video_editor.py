@@ -16,157 +16,122 @@ class VideoEditor:
             # 1. Output Path
             output_path = os.path.join(self.output_dir, output_filename)
             print(f"Assembling video: {output_path}")
-            
-            # 1. Output Path
-            output_path = os.path.join(self.output_dir, output_filename)
-            print(f"Assembling video: {output_path}")
 
-            # 2. Build Sequence from Segments (Define Duration First)
-            # segments = [{"audio": path, "image": path}, ...]
-            if isinstance(overlay_path, list) and len(overlay_path) > 0 and isinstance(overlay_path[0], dict):
-                # New Segment Logic
-                clips = []
-                audio_clips = []
+            clips = []
+            audio_clips = []
+
+            # Ensure we are working with a list of segments
+            segments = overlay_path if isinstance(overlay_path, list) else []
+            if not segments and isinstance(overlay_path, str):
+                # Legacy fallback
+                segments = [{"image": overlay_path, "audio": audio_path}]
+
+            print(f"Assembling {len(segments)} segments...")
+
+            for i, seg in enumerate(segments):
+                a_path = seg.get("audio") or audio_path
+                i_path = seg.get("image")
                 
-                print(f"Assembling {len(overlay_path)} synced segments...")
-                
-                for seg in overlay_path:
-                    a_path = seg.get("audio")
-                    i_path = seg.get("image")
-                    
-                    if not a_path or not i_path:
-                        continue
-                        
-                    # Load Audio
+                if not i_path: continue
+
+                # A. AUDIO
+                if a_path and os.path.exists(a_path):
                     ac = AudioFileClip(a_path)
                     seg_duration = ac.duration
                     audio_clips.append(ac)
-                    
-                    # Load Image & Set Duration
-                    ic = ImageClip(i_path).set_duration(seg_duration).resize(newsize=(1080, 1920))
-                    clips.append(ic)
-                
-                if not clips:
-                    print("No valid segments found.")
-                    return None
-                    
-                # Concatenate
-                overlay_clip = concatenate_videoclips(clips)
-                final_audio = concatenate_audioclips(audio_clips)
-                duration = final_audio.duration
-                
-            else:
-                # Fallback / Single Image Logic
-                if isinstance(overlay_path, list):
-                     # Legacy fallback
-                     img_path = overlay_path[0]
                 else:
-                     img_path = overlay_path
-
-                # Load Audio First to get duration
-                final_audio = AudioFileClip(audio_path)
-                duration = final_audio.duration
+                    seg_duration = 5 # Default
                 
-                overlay_clip = ImageClip(img_path, duration=duration)
-                overlay_clip = overlay_clip.resize(newsize=(1080, 1920))
-            
-            # Position Center
-            overlay_clip = overlay_clip.set_position("center")
-
-            # 1. Background Layer (Full Duration)
-            if not bg_path or not os.path.exists(bg_path):
-                print("Warning: Background not found. Using Black Fallback.")
-                bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=duration)
-            elif bg_type == "video":
-                # Loop video if shorter than audio
-                bg_clip = VideoFileClip(bg_path, audio=False)
-                if bg_clip.duration < duration:
-                    bg_clip = vfx.loop(bg_clip, duration=duration)
+                # B. BACKGROUND (Per Segment)
+                if not bg_path or not os.path.exists(bg_path):
+                    bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=seg_duration)
+                elif bg_type == "video":
+                    bg_clip = VideoFileClip(bg_path, audio=False)
+                    # Loop/Cut
+                    if bg_clip.duration < seg_duration:
+                        bg_clip = vfx.loop(bg_clip, duration=seg_duration)
+                    else:
+                        bg_clip = bg_clip.subclip(0, seg_duration)
+                    bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
                 else:
-                    bg_clip = bg_clip.subclip(0, duration)
-                bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
-            else:
-                # Image Logic: Dynamic "Viral" Style (Blurred BG + Sharp FG)
-                # This handles small images by filling screen with blur.
-                
-                # 1. Background: Zoomed & Blurred to fill screen
-                bg_img_clip = ImageClip(bg_path).set_duration(duration)
-                bg_blurred = bg_img_clip.resize(height=1920) # Resize to height first
-                if bg_blurred.w < 1080:
-                     bg_blurred = bg_blurred.resize(width=1080) # Ensure it covers width
-                bg_blurred = bg_blurred.crop(x1=0, y1=0, width=1080, height=1920).set_position("center")
-                
-                # Apply Blur (MoviePy doesn't have native fast blur in older versions, 
-                # but we can simulate or use resize trick). 
-                # Resize down to 5% then back up is a cheap blur.
-                bg_blurred = bg_blurred.resize(0.05).resize(20) 
-                
-                # 2. Foreground: Sharp, fit width 1080, centered
-                fg_img_clip = ImageClip(bg_path).set_duration(duration).resize(width=1080).set_position("center")
-                
-                # 3. Composite Background
-                bg_clip = CompositeVideoClip([bg_blurred, fg_img_clip], size=(1080,1920))
+                    # Image BG: Viral Blur Style
+                    bg_img_clip = ImageClip(bg_path).set_duration(seg_duration)
+                    
+                    # 1. Blurred Background
+                    bg_blurred = bg_img_clip.resize(height=1920)
+                    if bg_blurred.w < 1080: bg_blurred = bg_blurred.resize(width=1080)
+                    bg_blurred = bg_blurred.crop(x1=0, y1=0, width=1080, height=1920).set_position("center")
+                    bg_blurred = bg_blurred.resize(0.05).resize(20) # Blur trick
 
-                # 4a. Card Overlay (Static Image)
-                # Animate Card Entry: Slide Up from bottom
-                # duration is seg_duration
-                # We want it to stay fixed, maybe slide in at start of first segment?
-                # But segments are concatenated. If we slide in every segment it looks glitchy.
-                # For now, just Static Center.
+                    # 2. Sharp Image Foreground
+                    fg_img_clip = ImageClip(bg_path).set_duration(seg_duration).resize(width=1080).set_position("center")
+                    
+                    bg_clip = CompositeVideoClip([bg_blurred, fg_img_clip], size=(1080,1920)).set_duration(seg_duration)
+
+                # C. CARD OVERLAY
+                # Static center card
                 card_clip = ImageClip(i_path).set_duration(seg_duration).resize(newsize=(1080, 1920)).set_position("center")
 
-                # 4b. Ticker Overlay (Scrolling)
+                # D. TICKER (Scrolling)
                 ticker_path = seg.get("ticker_image")
+                layers = [bg_clip, card_clip]
+                
                 if ticker_path and os.path.exists(ticker_path):
                     ticker_img = ImageClip(ticker_path).set_duration(seg_duration)
-                    
-                    # Scroll logic: Move from Right to Left
                     scroll_speed = 250
-                    # Ticker Y position: The card is centered 1920 height.
-                    # If card content is variable, we need a safe spot. 
-                    # Bottom of screen is safest. 
-                    # y = 1750 (near bottom)
                     ticker_y = 1750
-                    
-                    # x(t) = start_x - speed * t
-                    # We want continuous scrolling across segments? 
-                    # That's hard with per-segment clips.
-                    # Resetting scroll per segment is Acceptable for MVP.
+                    # Scroll Right to Left
                     ticker_clip = ticker_img.set_position(lambda t: (1080 - int(scroll_speed * t), ticker_y))
-                    
-                    # Combine
-                    segment_comp = CompositeVideoClip([bg_clip, card_clip, ticker_clip], size=(1080,1920)).set_duration(seg_duration)
-                    clips.append(segment_comp)
-                else:
-                    # No ticker
-                    segment_comp = CompositeVideoClip([bg_clip, card_clip], size=(1080,1920)).set_duration(seg_duration)
-                    clips.append(segment_comp)
+                    layers.append(ticker_clip)
 
+                # COMPOSITE SEGMENT
+                segment_comp = CompositeVideoClip(layers, size=(1080,1920)).set_duration(seg_duration)
+                
+                # Apply Crossfade to entrance of segments (except first)
+                if i > 0:
+                    segment_comp = segment_comp.crossfadein(0.5)
+                
+                clips.append(segment_comp)
 
-            # 4. Composite
-            print("Compositing Layers...")
-            # We explicitly tell MoviePy to use the alpha of the overlay
-            # Using 'compose' method or just list
-            final_video = CompositeVideoClip([bg_clip, overlay_clip], size=(1080,1920))
-            final_video = final_video.set_duration(duration)
-            final_video = CompositeVideoClip([bg_clip, overlay_clip], size=(1080,1920))
-            final_video = final_video.set_duration(duration)
-            final_video = final_video.set_audio(final_audio)
+            if not clips:
+                print("No clips generated.")
+                return None
+
+            # 3. Concatenate (Method='compose' handles the crossfades)
+            # padding=-0.5 allows overlapping for the crossfade duration
+            # Note: For simple crossfadein, we might not strictly need padding if we just overlap opacity, 
+            # but standard concat simply plays sequentially.
+            # To get TRUE crossfade (clip A fading out valid clip B fading in), we need Composite or overlapping concat.
+            # MoviePy v1 concat with padding is tricky.
+            # Simpler approach: sequential play, but each clip starts with a fade-in (from black/previous).
+            # This works visually as a "transition".
             
-            # 5. Write Output
+            final_video = concatenate_videoclips(clips, method="compose", padding=-0.5)
+            
+            # Rebuild Audio
+            final_audio_track = concatenate_audioclips(audio_clips)
+            final_video = final_video.set_audio(final_audio_track)
+
+            # 4. Write Output
             os.makedirs(self.output_dir, exist_ok=True)
-            output_path = os.path.join(self.output_dir, output_filename)
+            
             final_video.write_videofile(
                 output_path, 
                 fps=24, 
                 codec='libx264', 
                 audio_codec='aac', 
-                threads=1, # Single thread for safety with Alpha compositing
+                threads=1, 
                 temp_audiofile='temp-audio.m4a', 
                 remove_temp=True
             )
             
             return output_path
+
+        except Exception as e:
+            print(f"Error editing video: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
         except Exception as e:
             print(f"Error editing video: {e}")

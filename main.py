@@ -77,7 +77,10 @@ def main():
         audio_path = f"generated/segment_{article['article_id']}_{idx}.mp3"
         script_text = seg.get("script", "")
         # Remove speaking instructions if any
-        clean_text = script_text.replace("[pause]", "...").replace("[URGENT]", "")
+        import re
+        # Remove common script prefixes like "Voice:", "Narrator:", "Audio:" (case insensitive)
+        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio)\s*[:=-]\s*', '', script_text, flags=re.IGNORECASE)
+        clean_text = clean_text.replace("[pause]", "...").replace("[URGENT]", "")
         
         if not audio_gen.generate_audio(clean_text, audio_path):
             print(f"Failed audio for segment {idx}")
