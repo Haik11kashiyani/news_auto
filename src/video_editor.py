@@ -44,7 +44,9 @@ class VideoEditor:
                 
                 # B. BACKGROUND (Per Segment)
                 if not bg_path or not os.path.exists(bg_path):
-                    bg_clip = ColorClip(size=(1080, 1920), color=(0,0,0), duration=seg_duration)
+                    # FALLBACK: Create a gradient background instead of pure black
+                    print(f"[BG] No image found, creating gradient fallback...")
+                    bg_clip = self._create_gradient_bg(seg_duration)
                 elif bg_type == "video":
                     bg_clip = VideoFileClip(bg_path, audio=False)
                     # Loop/Cut
@@ -133,9 +135,28 @@ class VideoEditor:
             traceback.print_exc()
             return None
 
-        except Exception as e:
-            print(f"Error editing video: {e}")
-            return None
+    def _create_gradient_bg(self, duration):
+        """
+        Creates a professional gradient background as fallback.
+        Uses numpy to create a vertical gradient from dark blue to black.
+        """
+        import numpy as np
+        
+        width, height = 1080, 1920
+        
+        # Create gradient array (dark blue to black)
+        gradient = np.zeros((height, width, 3), dtype=np.uint8)
+        for y in range(height):
+            # Dark blue at top, black at bottom
+            ratio = y / height
+            r = int(15 * (1 - ratio))  # Dark red component
+            g = int(25 * (1 - ratio))  # Dark green component
+            b = int(60 * (1 - ratio))  # Dark blue component
+            gradient[y, :] = [r, g, b]
+        
+        # Create clip from array
+        clip = ImageClip(gradient).set_duration(duration)
+        return clip
 
 if __name__ == "__main__":
     # Mock Test

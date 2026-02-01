@@ -61,12 +61,22 @@ class AudioGenerator:
         # Start fresh
         clean = str(text)
         
-        # 0. DIRECT STRING REPLACEMENTS for exact patterns (case-insensitive workaround)
-        # These MUST come first before any regex
-        for pattern in ["Voice =", "voice =", "Voice=", "voice=", 
-                        "Voice:", "voice:", "Voice -", "voice -",
-                        "Narrator:", "narrator:", "Speaker:", "speaker:",
-                        "Audio:", "audio:", "VO:", "vo:"]:
+        # 0. DIRECT STRING REPLACEMENTS for exact patterns
+        # These MUST come first before any regex - handles all variations
+        patterns_to_remove = [
+            # Voice variations
+            "Voice =", "voice =", "Voice=", "voice=", "Voice:", "voice:", 
+            "Voice -", "voice -", "Voice name =", "voice name =",
+            # Name variations (sometimes Gemini outputs "name = ...")
+            "name =", "Name =", "name=", "Name=", "name:", "Name:",
+            # Narrator/Speaker/Audio
+            "Narrator:", "narrator:", "Narrator =", "narrator =",
+            "Speaker:", "speaker:", "Speaker =", "speaker =",
+            "Audio:", "audio:", "Audio =", "audio =",
+            "VO:", "vo:", "VO =", "vo =",
+            "Voiceover:", "voiceover:", "Voiceover =", "voiceover =",
+        ]
+        for pattern in patterns_to_remove:
             clean = clean.replace(pattern, "")
         
         # 1. Regex: Remove any remaining "Voice/Narrator/etc" with separators
