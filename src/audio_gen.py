@@ -52,7 +52,7 @@ class AudioGenerator:
 
     def _sanitize_for_tts(self, text):
         """
-        NUCLEAR OPTION: Remove ALL possible script/direction tags.
+        ABSOLUTE NUCLEAR OPTION: Remove ALL possible prefixes.
         This is the FINAL checkpoint before TTS.
         """
         if not text:
@@ -60,18 +60,21 @@ class AudioGenerator:
         
         # Start fresh
         clean = str(text)
+        original = clean  # Keep for debug
         
-        # 0. DIRECT STRING REPLACEMENTS for exact patterns
-        # These MUST come first before any regex - handles all variations
-        patterns_to_remove = [
-            # Voice name variations (MOST COMMON ISSUE)
+        # STEP 0: DIRECT STRING REPLACEMENTS (exact patterns - case sensitive)
+        # These are the EXACT patterns Gemini is generating
+        exact_patterns = [
+            # Multi-word patterns (MOST IMPORTANT)
+            "Voice name = Inner Engineer", "voice name = Inner Engineer",
+            "Voice name = inner engineer", "Voice Name = Inner Engineer",
             "Voice name =", "voice name =", "Voice Name =", "voice Name =",
             "Voice name=", "voice name=", "VOICE NAME =", "VOICE NAME=",
-            # Voice variations
+            # Single word patterns
             "Voice =", "voice =", "Voice=", "voice=", "Voice:", "voice:", 
             "Voice -", "voice -", "VOICE =", "VOICE:",
-            # Name variations (sometimes Gemini outputs "name = ...")
-            "name =", "Name =", "name=", "Name=", "name:", "Name:", "NAME =",
+            "Name =", "name =", "Name=", "name=", "Name:", "name:", "NAME =",
+            "Inner Engineer", "inner engineer", "INNER ENGINEER",
             # Narrator/Speaker/Audio
             "Narrator:", "narrator:", "Narrator =", "narrator =", "NARRATOR:",
             "Speaker:", "speaker:", "Speaker =", "speaker =", "SPEAKER:",
@@ -79,36 +82,35 @@ class AudioGenerator:
             "VO:", "vo:", "VO =", "vo =",
             "Voiceover:", "voiceover:", "Voiceover =", "voiceover =",
         ]
-        for pattern in patterns_to_remove:
+        for pattern in exact_patterns:
             clean = clean.replace(pattern, "")
         
-        # 1. CATCH-ALL: Remove ANY word followed by = or : at the very start
-        # This catches patterns we haven't thought of
-        clean = re.sub(r'^[A-Za-z]+\s*[:=]\s*', '', clean.strip())
+        # STEP 1: AGGRESSIVE REGEX - Remove ANY words before = or : at start
+        # This matches: "Word1 Word2 Word3 = ..." or "Word1 Word2:"
+        # Catches up to 5 words before the separator
+        clean = re.sub(r'^([A-Za-z]+\s+){0,5}[A-Za-z]+\s*[:=]\s*', '', clean.strip())
         
-        # 2. Regex: Remove any remaining "Voice/Narrator/etc" with separators ANYWHERE
-        clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover|Name)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
+        # STEP 2: Remove ANYWHERE in text (not just start)
+        clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover|Name|Inner\s+Engineer)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
         
-        # 3. Remove the standalone word "Voice" or "Name" completely
-        clean = re.sub(r'\b(Voice|Name)\b', '', clean, flags=re.IGNORECASE)
+        # STEP 3: Remove standalone "Voice", "Name", "Inner Engineer" completely
+        clean = re.sub(r'\bVoice\b', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bName\b', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bInner\s*Engineer\b', '', clean, flags=re.IGNORECASE)
         
-        # 4. Remove emotion/direction tags: (Happy), [Excited], {Serious}, etc.
-        clean = re.sub(r'[\(\[\{][^\)\]\}]{0,20}[\)\]\}]', '', clean)
+        # STEP 4: Remove emotion/direction tags
+        clean = re.sub(r'[\(\[\{][^\)\]\}]{0,30}[\)\]\}]', '', clean)
         
-        # 5. Remove bracketed instructions: [pause], [URGENT], [SFX], [beat]
-        clean = re.sub(r'\[[^\]]*\]', '', clean)
+        # STEP 5: Remove any = or : at the very start (leftover separators)
+        clean = re.sub(r'^[\s:=\-]+', '', clean)
         
-        # 6. Remove "Inner Engineer" or similar if present
-        clean = re.sub(r'\bInner\s+Engineer\b', '', clean, flags=re.IGNORECASE)
-        
-        # 7. Remove any remaining special markers
-        clean = clean.replace("***", "").replace("**", "").replace("##", "")
-        
-        # 8. Normalize whitespace
+        # STEP 6: Normalize whitespace
         clean = re.sub(r'\s+', ' ', clean).strip()
         
-        print(f"[TTS Sanitizer] Input: {text[:80]}...")
-        print(f"[TTS Sanitizer] Output: {clean[:80]}...")
+        # Debug output
+        print(f"[TTS SANITIZER] BEFORE: '{original[:100]}'")
+        print(f"[TTS SANITIZER] AFTER:  '{clean[:100]}'")
+        
         return clean
 
     def _to_ssml(self, text: str) -> str:
