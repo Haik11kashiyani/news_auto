@@ -7,3 +7,5 @@ gTTS
 edge-tts
 feedparser
 beautifulsoup4
+scipy
+numpy

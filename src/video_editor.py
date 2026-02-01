@@ -56,19 +56,23 @@ class VideoEditor:
                         bg_clip = bg_clip.subclip(0, seg_duration)
                     bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
                 else:
-                    # Image BG: Viral Blur Style
-                    bg_img_clip = ImageClip(bg_path).set_duration(seg_duration)
+                else:
+                    # Image BG: Premium Ken Burns (GSAP-style easing)
+                    print(f"Applying Ken Burns to segment {i}...")
                     
-                    # 1. Blurred Background
-                    bg_blurred = bg_img_clip.resize(height=1920)
-                    if bg_blurred.w < 1080: bg_blurred = bg_blurred.resize(width=1080)
-                    bg_blurred = bg_blurred.crop(x1=0, y1=0, width=1080, height=1920).set_position("center")
-                    bg_blurred = bg_blurred.resize(0.05).resize(20) # Blur trick
-
-                    # 2. Sharp Image Foreground
-                    fg_img_clip = ImageClip(bg_path).set_duration(seg_duration).resize(width=1080).set_position("center")
-                    
-                    bg_clip = CompositeVideoClip([bg_blurred, fg_img_clip], size=(1080,1920)).set_duration(seg_duration)
+                    # Load raw image
+                    try:
+                        raw_clip = ImageClip(bg_path).set_duration(seg_duration)
+                        # Apply sophisticated Zoom/Pan
+                        bg_clip = self.apply_ken_burns(raw_clip, seg_duration)
+                        
+                        # Add darkening layer (30% opacity) to ensure overlay text pops
+                        dark_layer = ColorClip(size=(1080, 1920), color=(0,0,0)).set_opacity(0.3).set_duration(seg_duration)
+                        bg_clip = CompositeVideoClip([bg_clip, dark_layer], size=(1080,1920))
+                        
+                    except Exception as e:
+                        print(f"Ken Burns failed: {e}. Falling back to static.")
+                        bg_clip = ImageClip(bg_path).set_duration(seg_duration).resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
 
                 # C. CARD OVERLAY
                 # Static center card
@@ -192,6 +196,58 @@ class VideoEditor:
         clip = VideoClip(make_gradient_frame, duration=duration)
         clip = clip.set_fps(24)
         return clip
+
+    def apply_ken_burns(self, clip, duration, zoom_ratio=1.15):
+        """
+        Applies a Premium Ken Burns effect (Zoom + Pan) with non-linear easing.
+        Mimics GSAP 'Power2.inOut' or Sine ease for professional feel.
+        """
+        import numpy as np
+        
+        # Define easing function (Sine InOut)
+        def ease_in_out(t):
+            return -(np.cos(np.pi * t) - 1) / 2
+            
+        w, h = clip.w, clip.h
+        
+        # Directions: 0=Center, 1=TopLeft, 2=BottomRight, 3=TopRight, 4=BottomLeft
+        direction = random.choice([0, 1, 2, 3, 4])
+        
+        def filter(get_frame, t):
+            # Normalized time (0 to 1)
+            progress = t / duration
+            eased_progress = ease_in_out(progress)
+            
+            # Zoom Factor calculation (1.0 -> 1.15)
+            current_zoom = 1.0 + (zoom_ratio - 1.0) * eased_progress
+            
+            # Calculate dynamic crop window
+            # We want to crop a window of size (w/zoom, h/zoom) from the original
+            cw, ch = w / current_zoom, h / current_zoom
+            
+            if direction == 0: # Center Zoom
+                x1 = (w - cw) / 2
+                y1 = (h - ch) / 2
+            elif direction == 1: # Top Left
+                x1 = (w - cw) * eased_progress  # Pan slightly
+                y1 = (h - ch) * eased_progress
+            elif direction == 2: # Bottom Right
+                x1 = (w - cw) * (1 - eased_progress)
+                y1 = (h - ch) * (1 - eased_progress)
+            else: # Random slight pan
+                x1 = (w - cw) / 2
+                y1 = (h - ch) / 2
+                
+            frame = get_frame(t)
+            
+            # Crop and Resize using PIL (cleaner upscaling than basic array slicing)
+            from PIL import Image
+            img = Image.fromarray(frame)
+            cropped = img.crop((x1, y1, x1+cw, y1+ch))
+            resized = cropped.resize((1080, 1920), Image.LANCZOS)
+            return np.array(resized)
+
+        return clip.fl(filter)
 
 if __name__ == "__main__":
     # Mock Test
