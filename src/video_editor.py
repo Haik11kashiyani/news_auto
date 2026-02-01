@@ -56,7 +56,6 @@ class VideoEditor:
                         bg_clip = bg_clip.subclip(0, seg_duration)
                     bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
                 else:
-                else:
                     # Image BG: Premium Ken Burns (GSAP-style easing)
                     print(f"Applying Ken Burns to segment {i}...")
                     
