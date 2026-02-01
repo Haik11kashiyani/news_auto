@@ -79,19 +79,23 @@ def main():
         import re
         clean_text = script_text.strip()
         
-        # Pattern 1: Remove "Voice:", "Narrator:", "Speaker:", "Audio:" at start (any case)
-        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio|Voiceover|VO)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE)
+        # Pattern 1: Remove "Voice:", "Narrator:", etc at START of any line (MULTILINE)
+        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio|Voiceover|VO)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE | re.MULTILINE)
         
         # Pattern 2: Remove emotion/direction tags like (Happy), [Excited], {Serious}
         clean_text = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', clean_text, flags=re.IGNORECASE)
         
-        # Pattern 3: Remove inline "Voice:" anywhere in text
-        clean_text = re.sub(r'\b(Voice|Narrator|Speaker)\s*[:=]\s*', '', clean_text, flags=re.IGNORECASE)
+        # Pattern 3: Remove inline "Voice:" ANYWHERE in text (global match)
+        clean_text = re.sub(r'\b(Voice|Narrator|Speaker|Audio)\s*[:=]\s*', '', clean_text, flags=re.IGNORECASE)
         
         # Pattern 4: Remove [pause], [URGENT], etc.
         clean_text = re.sub(r'\[(pause|urgent|beat|sfx|music)\]', '', clean_text, flags=re.IGNORECASE)
         
-        # Clean up double spaces
+        # Pattern 5: Remove standalone word "Voice" or "voice" if it appears alone (entire word)
+        # This catches cases like "Voice Voice" becoming "" 
+        clean_text = re.sub(r'\bVoice\b\s*', '', clean_text, flags=re.IGNORECASE)
+        
+        # Clean up double spaces and trim
         clean_text = re.sub(r'\s+', ' ', clean_text).strip()
         
         if not audio_gen.generate_audio(clean_text, audio_path):
