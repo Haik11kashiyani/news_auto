@@ -24,8 +24,14 @@ class AudioGenerator:
         2) ElevenLabs (if key provided)
         3) gTTS fallback (FREE, but more robotic)
         """
+        # DEBUG: Show what we received
+        print(f"[TTS DEBUG] ORIGINAL INPUT: {text}")
+        
         # FINAL CHECKPOINT: Clean ALL metadata before TTS
         text = self._sanitize_for_tts(text)
+        
+        # DEBUG: Show what we're sending to TTS
+        print(f"[TTS DEBUG] CLEANED OUTPUT: {text}")
         
         if not text.strip():
             print("ERROR: Text is empty after sanitization!")
@@ -55,10 +61,18 @@ class AudioGenerator:
         # Start fresh
         clean = str(text)
         
-        # 1. Remove "Voice:", "Narrator:", "Speaker:", "Audio:" patterns (ANY position)
+        # 0. DIRECT STRING REPLACEMENTS for exact patterns (case-insensitive workaround)
+        # These MUST come first before any regex
+        for pattern in ["Voice =", "voice =", "Voice=", "voice=", 
+                        "Voice:", "voice:", "Voice -", "voice -",
+                        "Narrator:", "narrator:", "Speaker:", "speaker:",
+                        "Audio:", "audio:", "VO:", "vo:"]:
+            clean = clean.replace(pattern, "")
+        
+        # 1. Regex: Remove any remaining "Voice/Narrator/etc" with separators
         clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
         
-        # 2. Remove the standalone word "Voice" completely (catches "Voice Voice")
+        # 2. Remove the standalone word "Voice" completely
         clean = re.sub(r'\bVoice\b', '', clean, flags=re.IGNORECASE)
         
         # 3. Remove emotion/direction tags: (Happy), [Excited], {Serious}, etc.
@@ -76,7 +90,8 @@ class AudioGenerator:
         # 7. Normalize whitespace
         clean = re.sub(r'\s+', ' ', clean).strip()
         
-        print(f"[TTS Sanitizer] Input: {text[:50]}... | Output: {clean[:50]}...")
+        print(f"[TTS Sanitizer] Input: {text[:80]}...")
+        print(f"[TTS Sanitizer] Output: {clean[:80]}...")
         return clean
 
     def _to_ssml(self, text: str) -> str:

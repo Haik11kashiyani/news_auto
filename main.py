@@ -147,8 +147,15 @@ def main():
     print("--- 5. Assembling Video ---")
     unique_ts = int(time.time())
     
-    # Sanitize Filename (remove invalid chars)
-    safe_article_id = str(article['article_id']).replace('/', '_').replace(':', '').replace('.', '')
+    # Sanitize Filename - Remove ALL invalid characters for Windows/Linux/Artifact upload
+    import re
+    safe_article_id = str(article['article_id'])
+    # Remove all invalid filename characters: ? * : " < > | / \ and also & = 
+    safe_article_id = re.sub(r'[?*:"<>|/\\&=\n\r]', '', safe_article_id)
+    # Replace remaining problematic chars
+    safe_article_id = safe_article_id.replace('.', '_').replace(' ', '_')
+    # Limit length to avoid path issues
+    safe_article_id = safe_article_id[:50]
     output_filename = f"news_{safe_article_id}_{unique_ts}.mp4"
     output_abs_path = os.path.join(os.getcwd(), "generated_videos", output_filename)
     # Ensure dir exists

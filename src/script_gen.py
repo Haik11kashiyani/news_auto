@@ -106,29 +106,35 @@ Below are {len(articles)} news articles. Pick the ONE that will go most viral:
 {items_text}
 
 ## Task 2: Generate Video Script for chosen article
-Create a clean video script using ONLY the actual news facts. Remove all:
-- Author names, publication metadata
-- "Voice:", "Narrator:", or any speaker tags
-- Filler words, promotional content
-- HTML tags, URLs
+Create a clean video script using ONLY the actual news facts.
+
+CRITICAL RULES FOR "script" FIELD:
+- The "script" field contains text that will be spoken by TTS (text-to-speech)
+- DO NOT include the word "Voice" anywhere
+- DO NOT include "Narrator:", "Speaker:", "Audio:" or any similar prefixes
+- DO NOT include "[pause]", "(Happy)", or any direction tags
+- ONLY include the actual sentence to be spoken, nothing else
+
+Example of WRONG script: "Voice: Breaking news about politics"
+Example of CORRECT script: "Breaking news about politics"
 
 Strictly output JSON only, no extra text:
 {{
     "chosen_index": <0-based index of chosen article>,
     "headline": "Full headline (NO truncation, NO ellipsis)",
     "segments": [
-        {{ "visual": "Key point 1 (max 15 words)", "script": "Clean spoken sentence for this slide." }},
-        {{ "visual": "Key point 2 (max 15 words)", "script": "Clean spoken sentence for this slide." }},
-        {{ "visual": "Key point 3 (max 15 words)", "script": "Clean spoken sentence for this slide." }}
+        {{ "visual": "Key point 1 (max 15 words)", "script": "Spoken sentence WITHOUT any Voice/Narrator prefix." }},
+        {{ "visual": "Key point 2 (max 15 words)", "script": "Spoken sentence WITHOUT any Voice/Narrator prefix." }},
+        {{ "visual": "Key point 3 (max 15 words)", "script": "Spoken sentence WITHOUT any Voice/Narrator prefix." }}
     ],
     "viral_description": "YouTube description",
     "viral_tags": ["#tag1", "#tag2"]
 }}
 
-Rules:
-- "script" must be PURE spoken text. No metadata, no prefixes.
-- "headline" must be the COMPLETE headline, never cut off.
-- Create 3-5 segments covering the main story points.
+Final Rules:
+- "script" = pure spoken text only. NO "Voice", NO prefixes, NO metadata.
+- "headline" = complete headline, never cut off.
+- Create 3-5 segments covering the main story.
 - Tone: Urgent, factual, engaging.
 """
 
