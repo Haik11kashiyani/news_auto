@@ -137,25 +137,56 @@ class VideoEditor:
 
     def _create_gradient_bg(self, duration):
         """
-        Creates a professional gradient background as fallback.
-        Uses numpy to create a vertical gradient from dark blue to black.
+        Creates an ANIMATED gradient background as fallback.
+        3-color gradient: White (30%), Dark color, Lighter version
+        With subtle animation (color shift over time)
         """
         import numpy as np
         
         width, height = 1080, 1920
         
-        # Create gradient array (dark blue to black)
-        gradient = np.zeros((height, width, 3), dtype=np.uint8)
-        for y in range(height):
-            # Dark blue at top, black at bottom
-            ratio = y / height
-            r = int(15 * (1 - ratio))  # Dark red component
-            g = int(25 * (1 - ratio))  # Dark green component
-            b = int(60 * (1 - ratio))  # Dark blue component
-            gradient[y, :] = [r, g, b]
+        # Define color stops (RGB)
+        # White -> Dark Purple -> Light Purple (3 zones)
+        color_white = np.array([255, 255, 255])  # 30% white
+        color_dark = np.array([30, 15, 60])      # Dark purple
+        color_light = np.array([80, 50, 120])    # Lighter purple
         
-        # Create clip from array
-        clip = ImageClip(gradient).set_duration(duration)
+        def make_gradient_frame(t):
+            """Create a frame with animated gradient (subtle color shift)"""
+            # Animate: slight hue shift over time
+            shift = np.sin(t * 0.5) * 10  # Subtle oscillation
+            
+            frame = np.zeros((height, width, 3), dtype=np.uint8)
+            
+            # Zone 1: Top 30% - White to Dark transition
+            zone1_end = int(height * 0.3)
+            for y in range(zone1_end):
+                ratio = y / zone1_end
+                color = color_white * (1 - ratio) + color_dark * ratio
+                color = np.clip(color + shift, 0, 255)
+                frame[y, :] = color.astype(np.uint8)
+            
+            # Zone 2: Middle 40% - Dark stays mostly dark
+            zone2_end = int(height * 0.7)
+            for y in range(zone1_end, zone2_end):
+                ratio = (y - zone1_end) / (zone2_end - zone1_end)
+                # Stay dark with slight variation
+                color = color_dark * (1 - ratio * 0.3) + color_light * (ratio * 0.3)
+                color = np.clip(color + shift * 0.5, 0, 255)
+                frame[y, :] = color.astype(np.uint8)
+            
+            # Zone 3: Bottom 30% - Dark to Lighter
+            for y in range(zone2_end, height):
+                ratio = (y - zone2_end) / (height - zone2_end)
+                color = color_dark * (1 - ratio) + color_light * ratio
+                color = np.clip(color + shift, 0, 255)
+                frame[y, :] = color.astype(np.uint8)
+            
+            return frame
+        
+        # Create video clip from frames
+        clip = VideoClip(make_gradient_frame, duration=duration)
+        clip = clip.set_fps(24)
         return clip
 
 if __name__ == "__main__":

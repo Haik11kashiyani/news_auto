@@ -64,40 +64,47 @@ class AudioGenerator:
         # 0. DIRECT STRING REPLACEMENTS for exact patterns
         # These MUST come first before any regex - handles all variations
         patterns_to_remove = [
+            # Voice name variations (MOST COMMON ISSUE)
+            "Voice name =", "voice name =", "Voice Name =", "voice Name =",
+            "Voice name=", "voice name=", "VOICE NAME =", "VOICE NAME=",
             # Voice variations
             "Voice =", "voice =", "Voice=", "voice=", "Voice:", "voice:", 
-            "Voice -", "voice -", "Voice name =", "voice name =",
+            "Voice -", "voice -", "VOICE =", "VOICE:",
             # Name variations (sometimes Gemini outputs "name = ...")
-            "name =", "Name =", "name=", "Name=", "name:", "Name:",
+            "name =", "Name =", "name=", "Name=", "name:", "Name:", "NAME =",
             # Narrator/Speaker/Audio
-            "Narrator:", "narrator:", "Narrator =", "narrator =",
-            "Speaker:", "speaker:", "Speaker =", "speaker =",
-            "Audio:", "audio:", "Audio =", "audio =",
+            "Narrator:", "narrator:", "Narrator =", "narrator =", "NARRATOR:",
+            "Speaker:", "speaker:", "Speaker =", "speaker =", "SPEAKER:",
+            "Audio:", "audio:", "Audio =", "audio =", "AUDIO:",
             "VO:", "vo:", "VO =", "vo =",
             "Voiceover:", "voiceover:", "Voiceover =", "voiceover =",
         ]
         for pattern in patterns_to_remove:
             clean = clean.replace(pattern, "")
         
-        # 1. Regex: Remove any remaining "Voice/Narrator/etc" with separators
-        clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
+        # 1. CATCH-ALL: Remove ANY word followed by = or : at the very start
+        # This catches patterns we haven't thought of
+        clean = re.sub(r'^[A-Za-z]+\s*[:=]\s*', '', clean.strip())
         
-        # 2. Remove the standalone word "Voice" completely
-        clean = re.sub(r'\bVoice\b', '', clean, flags=re.IGNORECASE)
+        # 2. Regex: Remove any remaining "Voice/Narrator/etc" with separators ANYWHERE
+        clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover|Name)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
         
-        # 3. Remove emotion/direction tags: (Happy), [Excited], {Serious}, etc.
+        # 3. Remove the standalone word "Voice" or "Name" completely
+        clean = re.sub(r'\b(Voice|Name)\b', '', clean, flags=re.IGNORECASE)
+        
+        # 4. Remove emotion/direction tags: (Happy), [Excited], {Serious}, etc.
         clean = re.sub(r'[\(\[\{][^\)\]\}]{0,20}[\)\]\}]', '', clean)
         
-        # 4. Remove bracketed instructions: [pause], [URGENT], [SFX], [beat]
+        # 5. Remove bracketed instructions: [pause], [URGENT], [SFX], [beat]
         clean = re.sub(r'\[[^\]]*\]', '', clean)
         
-        # 5. Remove "Inner Engineer" or similar if present
+        # 6. Remove "Inner Engineer" or similar if present
         clean = re.sub(r'\bInner\s+Engineer\b', '', clean, flags=re.IGNORECASE)
         
-        # 6. Remove any remaining special markers
+        # 7. Remove any remaining special markers
         clean = clean.replace("***", "").replace("**", "").replace("##", "")
         
-        # 7. Normalize whitespace
+        # 8. Normalize whitespace
         clean = re.sub(r'\s+', ' ', clean).strip()
         
         print(f"[TTS Sanitizer] Input: {text[:80]}...")
