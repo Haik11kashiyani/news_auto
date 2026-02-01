@@ -114,7 +114,7 @@ Create a clean video script using ONLY the actual news facts.
 The "script" field will be read aloud by a TTS engine. ANY metadata will be SPOKEN OUT LOUD.
 
 ABSOLUTELY FORBIDDEN in "script" field:
-- "Voice" or "Speak voice" or "Voice name =" (NEVER appear - will be spoken aloud)
+- "Voice", "Speak voice", "Speak voice name =", "Voice name =" (NEVER appear - will be spoken aloud)
 - "Inner Engineer" or "voice = Inner Engineer" (metadata, not news)
 - "Voice =" or "Voice:" or "Voice -" or "name =" or "Name ="
 - "Narrator:" or "Speaker:" or "Audio:"
@@ -189,6 +189,7 @@ FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spo
                                 s = seg["script"]
                                 # DIRECT REMOVALS (exact patterns)
                                 for bad in ["Voice name =", "voice name =", "Voice Name =",
+                                            "Speak voice name =", "speak voice name =", "speek voice name =",
                                             "Voice =", "voice =", "Name =", "name =",
                                             "Speak voice =", "Inner Engineer", "voice = Inner Engineer"]:
                                     s = s.replace(bad, "")
@@ -198,11 +199,13 @@ FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spo
                                 s = re.sub(r'^[A-Za-z]+\s*[:=]\s*', '', s.strip())
                                 # Remove emotion tags
                                 s = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', s, flags=re.IGNORECASE)
-                                # Remove standalone Voice/Name/Inner Engineer/typos
+                                # Remove standalone Voice/Name/Speak voice name/typos
                                 s = re.sub(r'\b(Voice|Name)\b', '', s, flags=re.IGNORECASE)
                                 s = re.sub(r'\bInner\s*Engineer\b', '', s, flags=re.IGNORECASE)
                                 s = re.sub(r'\b(ingenier|inginer)\b', '', s, flags=re.IGNORECASE)
+                                s = re.sub(r'\bSpeak\s+voice\s+name\b', '', s, flags=re.IGNORECASE)
                                 s = re.sub(r'\bSpeak\s+voice\b', '', s, flags=re.IGNORECASE)
+                                s = re.sub(r'\bspeek\s+voice\s+name\b', '', s, flags=re.IGNORECASE)
                                 # Clean double spaces
                                 s = re.sub(r'\s+', ' ', s).strip()
                                 seg["script"] = s

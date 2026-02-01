@@ -11,7 +11,6 @@ from src.audio_gen import AudioGenerator
 from src.visual_gen import VisualGenerator
 from src.video_editor import VideoEditor
 from src.dedup_manager import DedupManager
-from src.music_manager import MusicManager
 
 import random
 
@@ -34,7 +33,6 @@ def main():
     visual_gen = VisualGenerator()
     editor = VideoEditor()
     dedup = DedupManager()
-    music_mgr = MusicManager()
 
     # 2. Fetch News based on mode
     print("--- 1. Fetching News ---")
@@ -81,8 +79,7 @@ def main():
          return
 
     final_segments = []
-    music_path = None  # Will be set on first segment
-    
+
     for idx, seg in enumerate(segments):
         print(f"Processing Segment {idx+1}/{len(segments)}...")
         
@@ -96,9 +93,10 @@ def main():
         
         # STEP 0: DIRECT STRING REMOVALS (highest priority - exact matches)
         for bad_pattern in ["Voice name =", "voice name =", "Voice Name =", "VOICE NAME =",
-                            "Voice =", "voice =", "VOICE =", "Name =", "name =", "NAME =",
-                            "Speak voice =", "speak voice =", "Voice = Inner Engineer",
-                            "Inner Engineer", "inner engineer", "ingenier", "inginer"]:
+                            "Speak voice name =", "speak voice name =", "Speak voice name=",
+                            "speek voice name =", "speek voice name=", "Voice =", "voice =", "VOICE =",
+                            "Name =", "name =", "NAME =", "Speak voice =", "speak voice =",
+                            "Voice = Inner Engineer", "Inner Engineer", "inner engineer", "ingenier", "inginer"]:
             clean_text = clean_text.replace(bad_pattern, "")
         
         # Pattern 1: Remove "Voice:", "Narrator:", etc at START of any line (MULTILINE)
@@ -116,11 +114,13 @@ def main():
         # Pattern 5: Remove [pause], [URGENT], etc.
         clean_text = re.sub(r'\[(pause|urgent|beat|sfx|music)\]', '', clean_text, flags=re.IGNORECASE)
         
-        # Pattern 6: Remove standalone word "Voice", "Name", "Inner Engineer", "Engineer"/typos, "Speak voice"
+        # Pattern 6: Remove standalone "Voice", "Name", "Speak voice", "Speak voice name", typos
         clean_text = re.sub(r'\b(Voice|Name)\b\s*', '', clean_text, flags=re.IGNORECASE)
         clean_text = re.sub(r'\bInner\s*Engineer\b', '', clean_text, flags=re.IGNORECASE)
         clean_text = re.sub(r'\b(ingenier|inginer)\b', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'\bSpeak\s+voice\s+name\b', '', clean_text, flags=re.IGNORECASE)
         clean_text = re.sub(r'\bSpeak\s+voice\b', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'\bspeek\s+voice\s+name\b', '', clean_text, flags=re.IGNORECASE)
         
         # Clean up double spaces and trim
         clean_text = re.sub(r'\s+', ' ', clean_text).strip()
@@ -129,19 +129,6 @@ def main():
             print(f"Failed audio for segment {idx}")
             continue
         
-        # 4a-2. Mix with Background Music (only for first segment to get mood)
-        if idx == 0:
-            # Get music based on headline mood
-            music_path, detected_mood = music_mgr.get_music_for_news(
-                headline_text, 
-                article.get('description', '')
-            )
-            print(f"[Music] Using mood: {detected_mood}")
-        
-        # Mix music with voice if we have music
-        if music_path:
-            audio_gen.mix_with_music(audio_path, music_path)
-            
         # 4b. Visual
         visual_text = seg.get("visual", "")
         img_path = f"slide_{idx}.png"

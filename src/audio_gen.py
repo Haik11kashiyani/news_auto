@@ -70,6 +70,8 @@ class AudioGenerator:
             "Voice name = inner engineer", "Voice Name = Inner Engineer",
             "Voice name =", "voice name =", "Voice Name =", "voice Name =",
             "Voice name=", "voice name=", "VOICE NAME =", "VOICE NAME=",
+            "Speak voice name =", "speak voice name =", "Speak voice name=", "speak voice name=",
+            "speek voice name =", "speek voice name=", "Speek voice name =",
             "Speak voice =", "speak voice =", "Speak voice:", "Speak Voice =",
             "Speak Voice:", "speak voice:", "Voice = Inner Engineer",
             "voice = inner engineer", "Voice = inner engineer",
@@ -96,13 +98,17 @@ class AudioGenerator:
         
         # STEP 2: Remove ANYWHERE in text (not just start)
         clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover|Name|Inner\s+Engineer)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bSpeak\s+voice\s+name\s*[:=]?\s*', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bspeek\s+voice\s+name\s*[:=]?\s*', '', clean, flags=re.IGNORECASE)
         
-        # STEP 3: Remove standalone "Voice", "Name", "Inner Engineer", "Engineer" (when from voice tag), typos
+        # STEP 3: Remove standalone "Voice", "Name", "Speak voice", "Speak voice name", typos
         clean = re.sub(r'\bVoice\b', '', clean, flags=re.IGNORECASE)
         clean = re.sub(r'\bName\b', '', clean, flags=re.IGNORECASE)
         clean = re.sub(r'\bInner\s*Engineer\b', '', clean, flags=re.IGNORECASE)
         clean = re.sub(r'\b(ingenier|inginer)\b', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bSpeak\s+voice\s+name\b', '', clean, flags=re.IGNORECASE)
         clean = re.sub(r'\bSpeak\s+voice\b', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bspeek\s+voice\s+name\b', '', clean, flags=re.IGNORECASE)
         
         # STEP 4: Remove emotion/direction tags
         clean = re.sub(r'[\(\[\{][^\)\]\}]{0,30}[\)\]\}]', '', clean)
