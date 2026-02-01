@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import argparse
 from dotenv import load_dotenv
 
 from src.news_fetcher import NewsFetcher
@@ -9,11 +10,21 @@ from src.script_gen import ScriptGenerator
 from src.audio_gen import AudioGenerator
 from src.visual_gen import VisualGenerator
 from src.video_editor import VideoEditor
+from src.dedup_manager import DedupManager
 
 import random
 
 def main():
     load_dotenv()
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='News Video Generator')
+    parser.add_argument('--mode', choices=['indian', 'international', 'all'], 
+                        default='all', help='News mode: indian, international, or all')
+    args = parser.parse_args()
+    
+    print(f"=== NEWS VIDEO GENERATOR ===")
+    print(f"Mode: {args.mode.upper()}")
     
     # 1. Init Modules
     fetcher = NewsFetcher()
@@ -21,21 +32,22 @@ def main():
     audio_gen = AudioGenerator()
     visual_gen = VisualGenerator()
     editor = VideoEditor()
+    dedup = DedupManager()
 
-    # 2. Fetch News
+    # 2. Fetch News based on mode
     print("--- 1. Fetching News ---")
-    news_items = fetcher.fetch_fresh_news()
-    print(f"Found {len(news_items)} new articles.")
+    news_items = fetcher.fetch_fresh_news(mode=args.mode)
+    print(f"Found {len(news_items)} articles from {args.mode} sources.")
     
-    # Process max 1 article per run to avoid timeout/limits in MVP
-    # Can loop for more later
+    # 2a. Filter out duplicates using dedup manager
+    news_items = dedup.filter_new_articles(news_items)
+    
     if not news_items:
-        print("No new news to process.")
+        print("No new (non-duplicate) news to process.")
         return
 
     # 2b. Build small pool of candidates (top 5) and let Gemini pick the most
     #     viral/engaging one, instead of pure random.
-    #     Filter out None/Empty if any.
     valid_items = [n for n in news_items if n]
     selection_pool = valid_items[:5] if len(valid_items) >= 5 else valid_items
     
@@ -148,9 +160,10 @@ def main():
     
     if final_path and os.path.exists(final_path):
         print(f"SUCCESS: Video generated at {final_path}")
-        # Mark as processed
-        print(f"Marking article {article['article_id']} as processed...")
+        # Mark as processed in both systems
+        print(f"Marking article as processed...")
         fetcher.mark_as_processed(article['article_id'])
+        dedup.mark_processed(article)  # NEW: Dedup tracking
         
         # Note: Upload comes next
         print("--- 6. Upload Stub (Pending) ---")
