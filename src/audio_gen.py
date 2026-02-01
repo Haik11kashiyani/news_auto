@@ -24,6 +24,13 @@ class AudioGenerator:
         2) ElevenLabs (if key provided)
         3) gTTS fallback (FREE, but more robotic)
         """
+        # FINAL CHECKPOINT: Clean ALL metadata before TTS
+        text = self._sanitize_for_tts(text)
+        
+        if not text.strip():
+            print("ERROR: Text is empty after sanitization!")
+            return None
+        
         # 1) Free, human-like (no key)
         edge_path = self._generate_edge_tts_audio(text, output_path)
         if edge_path:
@@ -36,6 +43,41 @@ class AudioGenerator:
         # 3) Free fallback
         print("Using Free TTS fallback (gTTS)...")
         return self._generate_gtts_audio(text, output_path)
+
+    def _sanitize_for_tts(self, text):
+        """
+        NUCLEAR OPTION: Remove ALL possible script/direction tags.
+        This is the FINAL checkpoint before TTS.
+        """
+        if not text:
+            return ""
+        
+        # Start fresh
+        clean = str(text)
+        
+        # 1. Remove "Voice:", "Narrator:", "Speaker:", "Audio:" patterns (ANY position)
+        clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
+        
+        # 2. Remove the standalone word "Voice" completely (catches "Voice Voice")
+        clean = re.sub(r'\bVoice\b', '', clean, flags=re.IGNORECASE)
+        
+        # 3. Remove emotion/direction tags: (Happy), [Excited], {Serious}, etc.
+        clean = re.sub(r'[\(\[\{][^\)\]\}]{0,20}[\)\]\}]', '', clean)
+        
+        # 4. Remove bracketed instructions: [pause], [URGENT], [SFX], [beat]
+        clean = re.sub(r'\[[^\]]*\]', '', clean)
+        
+        # 5. Remove "Inner Engineer" or similar if present
+        clean = re.sub(r'\bInner\s+Engineer\b', '', clean, flags=re.IGNORECASE)
+        
+        # 6. Remove any remaining special markers
+        clean = clean.replace("***", "").replace("**", "").replace("##", "")
+        
+        # 7. Normalize whitespace
+        clean = re.sub(r'\s+', ' ', clean).strip()
+        
+        print(f"[TTS Sanitizer] Input: {text[:50]}... | Output: {clean[:50]}...")
+        return clean
 
     def _to_ssml(self, text: str) -> str:
         """

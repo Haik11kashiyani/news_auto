@@ -10,22 +10,63 @@ class NewsFetcher:
         self.worldnews_api_key = os.getenv("WORLDNEWS_API_KEY")
         self.processed_ids_file = "processed_ids.txt"
         self.processed_ids = self._load_processed_ids()
-        # Curated free RSS feeds: mix of India + World.
-        # Note: we only use title/summary/link as signals; we don't re-host full articles.
+        
+        # EXPANDED RSS FEEDS - Indian Sources (National)
         self.rss_feeds_india = [
+            # Times of India
             "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
             "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms",  # India
+            "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms",  # Top Stories
+            # NDTV
             "https://feeds.feedburner.com/ndtvnews-top-stories",
+            "https://feeds.feedburner.com/ndtvnews-india-news",
+            # Indian Express
             "https://indianexpress.com/feed/",
+            "https://indianexpress.com/section/india/feed/",
+            # Hindustan Times
             "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
+            "https://www.hindustantimes.com/feeds/rss/top-news/rssfeed.xml",
+            # The Hindu
+            "https://www.thehindu.com/news/national/feeder/default.rss",
+            # Zee News
+            "https://zeenews.india.com/rss/india-news.xml",
+            # News18
+            "https://www.news18.com/rss/india.xml",
+            # Deccan Herald
+            "https://www.deccanherald.com/rss/national.rss",
+            # Mint (Business)
+            "https://www.livemint.com/rss/news",
         ]
-        self.rss_feeds_world = [
-            "https://feeds.bbci.co.uk/news/world/rss.xml",
-            "https://feeds.bbci.co.uk/news/world/asia/india/rss.xml",
-            "https://rss.cnn.com/rss/edition_world.rss",
-            "https://rss.cnn.com/rss/edition_asia.rss",
+        
+        # EXPANDED RSS FEEDS - International Sources
+        self.rss_feeds_international = [
+            # BBC
+            "http://feeds.bbci.co.uk/news/world/rss.xml",
+            "http://feeds.bbci.co.uk/news/rss.xml",
+            # Reuters
+            "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
+            # CNN
+            "http://rss.cnn.com/rss/edition_world.rss",
+            "http://rss.cnn.com/rss/edition.rss",
+            # Al Jazeera
             "https://www.aljazeera.com/xml/rss/all.xml",
+            # The Guardian
+            "https://www.theguardian.com/world/rss",
+            "https://www.theguardian.com/international/rss",
+            # NPR
+            "https://feeds.npr.org/1001/rss.xml",
+            # ABC News
+            "https://abcnews.go.com/abcnews/internationalheadlines",
+            # France24
+            "https://www.france24.com/en/rss",
+            # DW (Deutsche Welle)
+            "https://rss.dw.com/rdf/rss-en-world",
+            # Sky News
+            "https://feeds.skynews.com/feeds/rss/world.xml",
         ]
+        
+        # Legacy combined list for backward compatibility
+        self.rss_feeds_world = self.rss_feeds_international
 
     def _load_processed_ids(self):
         if not os.path.exists(self.processed_ids_file):
@@ -40,14 +81,28 @@ class NewsFetcher:
             f.write(f"{safe_id}\n")
         self.processed_ids.add(safe_id)
 
-    def fetch_fresh_news(self):
+    def fetch_fresh_news(self, mode="all"):
         """
         Fetches fresh news.
-        Priority:
-          RSS-only (India + World) [temporarily for testing]
+        mode: "indian", "international", or "all" (default)
         """
-        print("Fetching from RSS feeds only (India + World)...")
-        return self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_world)
+        if mode == "indian":
+            print("Fetching from Indian RSS feeds only...")
+            return self._fetch_rss_sources(self.rss_feeds_india)
+        elif mode == "international":
+            print("Fetching from International RSS feeds only...")
+            return self._fetch_rss_sources(self.rss_feeds_international)
+        else:
+            print("Fetching from ALL RSS feeds (India + International)...")
+            return self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_international)
+
+    def fetch_indian_news(self):
+        """Convenience method for fetching only Indian news."""
+        return self.fetch_fresh_news(mode="indian")
+    
+    def fetch_international_news(self):
+        """Convenience method for fetching only International news."""
+        return self.fetch_fresh_news(mode="international")
 
     def mark_as_processed(self, article_id):
         """
