@@ -219,6 +219,68 @@ class AudioGenerator:
             print(f"Error getting duration: {e}")
             return 0
 
+    def mix_with_music(self, voice_path, music_path, output_path=None, music_volume=0.15):
+        """
+        Mix voice audio with background music.
+        Voice stays at full volume, music is lowered significantly.
+        
+        Args:
+            voice_path: Path to the voice audio file
+            music_path: Path to the background music file
+            output_path: Optional output path (defaults to replacing voice_path)
+            music_volume: Volume of music (0.0 to 1.0), default 0.15 (15%)
+        
+        Returns:
+            Path to the mixed audio file
+        """
+        try:
+            from moviepy.editor import AudioFileClip, CompositeAudioClip
+            
+            if not output_path:
+                output_path = voice_path  # Replace in place
+            
+            if not music_path or not os.path.exists(music_path):
+                print("[Mix] No music file, skipping mix")
+                return voice_path
+            
+            print(f"[Mix] Mixing voice with background music (volume: {music_volume})...")
+            
+            # Load voice
+            voice = AudioFileClip(voice_path)
+            voice_duration = voice.duration
+            
+            # Load and adjust music
+            music = AudioFileClip(music_path)
+            
+            # Loop music if shorter than voice
+            if music.duration < voice_duration:
+                from moviepy.audio.fx.all import audio_loop
+                music = audio_loop(music, duration=voice_duration)
+            else:
+                music = music.subclip(0, voice_duration)
+            
+            # Lower music volume
+            music = music.volumex(music_volume)
+            
+            # Composite (voice on top)
+            final = CompositeAudioClip([music, voice])
+            
+            # Write
+            final.write_audiofile(output_path, fps=44100, verbose=False, logger=None)
+            
+            # Cleanup
+            voice.close()
+            music.close()
+            final.close()
+            
+            print(f"[Mix] Mixed audio saved: {output_path}")
+            return output_path
+            
+        except Exception as e:
+            print(f"[Mix] Error mixing audio: {e}")
+            return voice_path  # Return original if mix fails
+
 if __name__ == "__main__":
     gen = AudioGenerator()
     gen.generate_audio("This is a test broadcast from Logic Vault.", "test_audio.mp3")
+

@@ -11,6 +11,7 @@ from src.audio_gen import AudioGenerator
 from src.visual_gen import VisualGenerator
 from src.video_editor import VideoEditor
 from src.dedup_manager import DedupManager
+from src.music_manager import MusicManager
 
 import random
 
@@ -33,6 +34,7 @@ def main():
     visual_gen = VisualGenerator()
     editor = VideoEditor()
     dedup = DedupManager()
+    music_mgr = MusicManager()
 
     # 2. Fetch News based on mode
     print("--- 1. Fetching News ---")
@@ -79,6 +81,7 @@ def main():
          return
 
     final_segments = []
+    music_path = None  # Will be set on first segment
     
     for idx, seg in enumerate(segments):
         print(f"Processing Segment {idx+1}/{len(segments)}...")
@@ -113,6 +116,19 @@ def main():
         if not audio_gen.generate_audio(clean_text, audio_path):
             print(f"Failed audio for segment {idx}")
             continue
+        
+        # 4a-2. Mix with Background Music (only for first segment to get mood)
+        if idx == 0:
+            # Get music based on headline mood
+            music_path, detected_mood = music_mgr.get_music_for_news(
+                headline_text, 
+                article.get('description', '')
+            )
+            print(f"[Music] Using mood: {detected_mood}")
+        
+        # Mix music with voice if we have music
+        if music_path:
+            audio_gen.mix_with_music(audio_path, music_path)
             
         # 4b. Visual
         visual_text = seg.get("visual", "")
