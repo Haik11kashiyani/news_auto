@@ -139,9 +139,10 @@ class VideoEditor:
         """
         Creates an ANIMATED gradient background as fallback.
         3-color gradient: White (30%), Dark color, Lighter version
-        With subtle animation (color shift over time)
+        With subtle animation (color shift) + blur effect
         """
         import numpy as np
+        from scipy.ndimage import gaussian_filter
         
         width, height = 1080, 1920
         
@@ -152,11 +153,11 @@ class VideoEditor:
         color_light = np.array([80, 50, 120])    # Lighter purple
         
         def make_gradient_frame(t):
-            """Create a frame with animated gradient (subtle color shift)"""
+            """Create a frame with animated gradient + blur"""
             # Animate: slight hue shift over time
             shift = np.sin(t * 0.5) * 10  # Subtle oscillation
             
-            frame = np.zeros((height, width, 3), dtype=np.uint8)
+            frame = np.zeros((height, width, 3), dtype=np.float32)
             
             # Zone 1: Top 30% - White to Dark transition
             zone1_end = int(height * 0.3)
@@ -164,25 +165,28 @@ class VideoEditor:
                 ratio = y / zone1_end
                 color = color_white * (1 - ratio) + color_dark * ratio
                 color = np.clip(color + shift, 0, 255)
-                frame[y, :] = color.astype(np.uint8)
+                frame[y, :] = color
             
             # Zone 2: Middle 40% - Dark stays mostly dark
             zone2_end = int(height * 0.7)
             for y in range(zone1_end, zone2_end):
                 ratio = (y - zone1_end) / (zone2_end - zone1_end)
-                # Stay dark with slight variation
                 color = color_dark * (1 - ratio * 0.3) + color_light * (ratio * 0.3)
                 color = np.clip(color + shift * 0.5, 0, 255)
-                frame[y, :] = color.astype(np.uint8)
+                frame[y, :] = color
             
             # Zone 3: Bottom 30% - Dark to Lighter
             for y in range(zone2_end, height):
                 ratio = (y - zone2_end) / (height - zone2_end)
                 color = color_dark * (1 - ratio) + color_light * ratio
                 color = np.clip(color + shift, 0, 255)
-                frame[y, :] = color.astype(np.uint8)
+                frame[y, :] = color
             
-            return frame
+            # APPLY BLUR EFFECT (sigma=30 for smooth gradient)
+            for c in range(3):
+                frame[:, :, c] = gaussian_filter(frame[:, :, c], sigma=30)
+            
+            return frame.astype(np.uint8)
         
         # Create video clip from frames
         clip = VideoClip(make_gradient_frame, duration=duration)
