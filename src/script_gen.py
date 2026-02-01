@@ -167,16 +167,24 @@ Final Rules:
                     chosen_article = articles[chosen_idx]
                     script = {k: v for k, v in data.items() if k != "chosen_index"}
                     
-                    # CLEAN THE SCRIPT SEGMENTS AT SOURCE
+                    # CLEAN THE SCRIPT SEGMENTS AT SOURCE (FIRST LINE OF DEFENSE)
                     if "segments" in script:
                         import re
                         for seg in script["segments"]:
                             if "script" in seg:
                                 s = seg["script"]
+                                # DIRECT REMOVALS (exact patterns)
+                                for bad in ["Voice name =", "voice name =", "Voice Name =",
+                                            "Voice =", "voice =", "Name =", "name ="]:
+                                    s = s.replace(bad, "")
                                 # Remove Voice:/Narrator:/etc prefixes
-                                s = re.sub(r'^(Voice|Narrator|Speaker|Audio|VO)\s*[:=\-]?\s*', '', s, flags=re.IGNORECASE)
+                                s = re.sub(r'^(Voice|Narrator|Speaker|Audio|VO|Name)\s*[:=\-]?\s*', '', s, flags=re.IGNORECASE)
+                                # Remove ANY word followed by = at start
+                                s = re.sub(r'^[A-Za-z]+\s*[:=]\s*', '', s.strip())
                                 # Remove emotion tags
                                 s = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', s, flags=re.IGNORECASE)
+                                # Remove standalone Voice/Name words
+                                s = re.sub(r'\b(Voice|Name)\b', '', s, flags=re.IGNORECASE)
                                 # Clean double spaces
                                 s = re.sub(r'\s+', ' ', s).strip()
                                 seg["script"] = s

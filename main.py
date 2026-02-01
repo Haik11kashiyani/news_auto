@@ -90,25 +90,32 @@ def main():
         audio_path = f"generated/segment_{article['article_id']}_{idx}.mp3"
         script_text = seg.get("script", "")
         
-        # COMPREHENSIVE AUDIO CLEANUP - Remove ALL metadata/tags
+        # COMPREHENSIVE AUDIO CLEANUP - SECOND LINE OF DEFENSE
         import re
         clean_text = script_text.strip()
         
-        # Pattern 1: Remove "Voice:", "Narrator:", etc at START of any line (MULTILINE)
-        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio|Voiceover|VO)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE | re.MULTILINE)
+        # STEP 0: DIRECT STRING REMOVALS (highest priority - exact matches)
+        for bad_pattern in ["Voice name =", "voice name =", "Voice Name =", "VOICE NAME =",
+                            "Voice =", "voice =", "VOICE =", "Name =", "name =", "NAME ="]:
+            clean_text = clean_text.replace(bad_pattern, "")
         
-        # Pattern 2: Remove emotion/direction tags like (Happy), [Excited], {Serious}
+        # Pattern 1: Remove "Voice:", "Narrator:", etc at START of any line (MULTILINE)
+        clean_text = re.sub(r'^(Voice|Narrator|Speaker|Audio|Voiceover|VO|Name)\s*[:=\-]?\s*', '', clean_text, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Pattern 2: Remove ANY word followed by = or : at the very start
+        clean_text = re.sub(r'^[A-Za-z]+\s*[:=]\s*', '', clean_text.strip())
+        
+        # Pattern 3: Remove emotion/direction tags like (Happy), [Excited], {Serious}
         clean_text = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', clean_text, flags=re.IGNORECASE)
         
-        # Pattern 3: Remove inline "Voice:" ANYWHERE in text (global match)
-        clean_text = re.sub(r'\b(Voice|Narrator|Speaker|Audio)\s*[:=]\s*', '', clean_text, flags=re.IGNORECASE)
+        # Pattern 4: Remove inline "Voice:" ANYWHERE in text (global match)
+        clean_text = re.sub(r'\b(Voice|Narrator|Speaker|Audio|Name)\s*[:=]\s*', '', clean_text, flags=re.IGNORECASE)
         
-        # Pattern 4: Remove [pause], [URGENT], etc.
+        # Pattern 5: Remove [pause], [URGENT], etc.
         clean_text = re.sub(r'\[(pause|urgent|beat|sfx|music)\]', '', clean_text, flags=re.IGNORECASE)
         
-        # Pattern 5: Remove standalone word "Voice" or "voice" if it appears alone (entire word)
-        # This catches cases like "Voice Voice" becoming "" 
-        clean_text = re.sub(r'\bVoice\b\s*', '', clean_text, flags=re.IGNORECASE)
+        # Pattern 6: Remove standalone word "Voice" or "Name"
+        clean_text = re.sub(r'\b(Voice|Name)\b\s*', '', clean_text, flags=re.IGNORECASE)
         
         # Clean up double spaces and trim
         clean_text = re.sub(r'\s+', ' ', clean_text).strip()
