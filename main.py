@@ -96,7 +96,9 @@ def main():
         
         # STEP 0: DIRECT STRING REMOVALS (highest priority - exact matches)
         for bad_pattern in ["Voice name =", "voice name =", "Voice Name =", "VOICE NAME =",
-                            "Voice =", "voice =", "VOICE =", "Name =", "name =", "NAME ="]:
+                            "Voice =", "voice =", "VOICE =", "Name =", "name =", "NAME =",
+                            "Speak voice =", "speak voice =", "Voice = Inner Engineer",
+                            "Inner Engineer", "inner engineer", "ingenier", "inginer"]:
             clean_text = clean_text.replace(bad_pattern, "")
         
         # Pattern 1: Remove "Voice:", "Narrator:", etc at START of any line (MULTILINE)
@@ -114,8 +116,11 @@ def main():
         # Pattern 5: Remove [pause], [URGENT], etc.
         clean_text = re.sub(r'\[(pause|urgent|beat|sfx|music)\]', '', clean_text, flags=re.IGNORECASE)
         
-        # Pattern 6: Remove standalone word "Voice" or "Name"
+        # Pattern 6: Remove standalone word "Voice", "Name", "Inner Engineer", "Engineer"/typos, "Speak voice"
         clean_text = re.sub(r'\b(Voice|Name)\b\s*', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'\bInner\s*Engineer\b', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'\b(ingenier|inginer)\b', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'\bSpeak\s+voice\b', '', clean_text, flags=re.IGNORECASE)
         
         # Clean up double spaces and trim
         clean_text = re.sub(r'\s+', ' ', clean_text).strip()

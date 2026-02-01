@@ -81,20 +81,32 @@ class NewsFetcher:
             f.write(f"{safe_id}\n")
         self.processed_ids.add(safe_id)
 
+    def _is_developing_story_only(self, article):
+        """Return True if article is a 'developing story' placeholder - we do not pick these."""
+        title = (article.get("title") or "").lower()
+        desc = (article.get("description") or "").lower()
+        return "developing story" in title or "developing story" in desc
+
     def fetch_fresh_news(self, mode="all"):
         """
         Fetches fresh news.
         mode: "indian", "international", or "all" (default)
+        Skips articles that are only "developing story" placeholders.
         """
         if mode == "indian":
             print("Fetching from Indian RSS feeds only...")
-            return self._fetch_rss_sources(self.rss_feeds_india)
+            raw = self._fetch_rss_sources(self.rss_feeds_india)
         elif mode == "international":
             print("Fetching from International RSS feeds only...")
-            return self._fetch_rss_sources(self.rss_feeds_international)
+            raw = self._fetch_rss_sources(self.rss_feeds_international)
         else:
             print("Fetching from ALL RSS feeds (India + International)...")
-            return self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_international)
+            raw = self._fetch_rss_sources(self.rss_feeds_india + self.rss_feeds_international)
+        # Do not pick developing-story-only articles
+        filtered = [a for a in raw if not self._is_developing_story_only(a)]
+        if len(filtered) < len(raw):
+            print(f"[Filter] Skipped {len(raw) - len(filtered)} developing-story-only article(s).")
+        return filtered
 
     def fetch_indian_news(self):
         """Convenience method for fetching only Indian news."""

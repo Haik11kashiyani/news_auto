@@ -101,7 +101,9 @@ class ScriptGenerator:
 You are a **top tier Indian news curator and video script writer** for viral vertical videos (YouTube Shorts, Reels).
 
 ## Task 1: Choose the BEST article
-Below are {len(articles)} news articles. Pick the ONE that will go most viral:
+Below are {len(articles)} news articles. Pick the ONE that will go most viral.
+
+IMPORTANT: Do NOT choose an article that is only a "developing story" or has no real content. Prefer complete, substantive news.
 
 {items_text}
 
@@ -112,10 +114,9 @@ Create a clean video script using ONLY the actual news facts.
 The "script" field will be read aloud by a TTS engine. ANY metadata will be SPOKEN OUT LOUD.
 
 ABSOLUTELY FORBIDDEN in "script" field:
-- "Voice" (the word Voice must NEVER appear)
-- "Voice =" or "Voice:" or "Voice -"
-- "Voice name =" (this is a common mistake)
-- "name =" or "Name ="
+- "Voice" or "Speak voice" or "Voice name =" (NEVER appear - will be spoken aloud)
+- "Inner Engineer" or "voice = Inner Engineer" (metadata, not news)
+- "Voice =" or "Voice:" or "Voice -" or "name =" or "Name ="
 - "Narrator:" or "Speaker:" or "Audio:"
 - "[pause]", "(Happy)", or any direction tags
 - ANY prefix before the actual sentence
@@ -188,7 +189,8 @@ FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spo
                                 s = seg["script"]
                                 # DIRECT REMOVALS (exact patterns)
                                 for bad in ["Voice name =", "voice name =", "Voice Name =",
-                                            "Voice =", "voice =", "Name =", "name ="]:
+                                            "Voice =", "voice =", "Name =", "name =",
+                                            "Speak voice =", "Inner Engineer", "voice = Inner Engineer"]:
                                     s = s.replace(bad, "")
                                 # Remove Voice:/Narrator:/etc prefixes
                                 s = re.sub(r'^(Voice|Narrator|Speaker|Audio|VO|Name)\s*[:=\-]?\s*', '', s, flags=re.IGNORECASE)
@@ -196,8 +198,11 @@ FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spo
                                 s = re.sub(r'^[A-Za-z]+\s*[:=]\s*', '', s.strip())
                                 # Remove emotion tags
                                 s = re.sub(r'[\(\[\{](Happy|Sad|Excited|Serious|Urgent|Warm|Caution|Pause|Beat)[\)\]\}]', '', s, flags=re.IGNORECASE)
-                                # Remove standalone Voice/Name words
+                                # Remove standalone Voice/Name/Inner Engineer/typos
                                 s = re.sub(r'\b(Voice|Name)\b', '', s, flags=re.IGNORECASE)
+                                s = re.sub(r'\bInner\s*Engineer\b', '', s, flags=re.IGNORECASE)
+                                s = re.sub(r'\b(ingenier|inginer)\b', '', s, flags=re.IGNORECASE)
+                                s = re.sub(r'\bSpeak\s+voice\b', '', s, flags=re.IGNORECASE)
                                 # Clean double spaces
                                 s = re.sub(r'\s+', ' ', s).strip()
                                 seg["script"] = s
@@ -328,7 +333,7 @@ Rules for visual text:
                         title = title[:-1].strip()
         
         # Prioritize full scraped content -> description -> fallback
-        content_source = article.get('full_content', '') or article.get('description', '') or "We are tracking this developing story."
+        content_source = article.get('full_content', '') or article.get('description', '') or "More details to follow."
         
         # Robust HTML cleaning using BeautifulSoup
         try:

@@ -65,16 +65,20 @@ class AudioGenerator:
         # STEP 0: DIRECT STRING REPLACEMENTS (exact patterns - case sensitive)
         # These are the EXACT patterns Gemini is generating
         exact_patterns = [
-            # Multi-word patterns (MOST IMPORTANT)
+            # Multi-word patterns (MOST IMPORTANT) - TTS must NEVER speak these
             "Voice name = Inner Engineer", "voice name = Inner Engineer",
             "Voice name = inner engineer", "Voice Name = Inner Engineer",
             "Voice name =", "voice name =", "Voice Name =", "voice Name =",
             "Voice name=", "voice name=", "VOICE NAME =", "VOICE NAME=",
+            "Speak voice =", "speak voice =", "Speak voice:", "Speak Voice =",
+            "Speak Voice:", "speak voice:", "Voice = Inner Engineer",
+            "voice = inner engineer", "Voice = inner engineer",
             # Single word patterns
             "Voice =", "voice =", "Voice=", "voice=", "Voice:", "voice:", 
             "Voice -", "voice -", "VOICE =", "VOICE:",
             "Name =", "name =", "Name=", "name=", "Name:", "name:", "NAME =",
             "Inner Engineer", "inner engineer", "INNER ENGINEER",
+            "ingenier", "inginer", "Ingenier",  # common TTS mishearing of "Engineer"
             # Narrator/Speaker/Audio
             "Narrator:", "narrator:", "Narrator =", "narrator =", "NARRATOR:",
             "Speaker:", "speaker:", "Speaker =", "speaker =", "SPEAKER:",
@@ -93,10 +97,12 @@ class AudioGenerator:
         # STEP 2: Remove ANYWHERE in text (not just start)
         clean = re.sub(r'\b(Voice|Narrator|Speaker|Audio|VO|Voiceover|Name|Inner\s+Engineer)\s*[:=\-]?\s*', '', clean, flags=re.IGNORECASE)
         
-        # STEP 3: Remove standalone "Voice", "Name", "Inner Engineer" completely
+        # STEP 3: Remove standalone "Voice", "Name", "Inner Engineer", "Engineer" (when from voice tag), typos
         clean = re.sub(r'\bVoice\b', '', clean, flags=re.IGNORECASE)
         clean = re.sub(r'\bName\b', '', clean, flags=re.IGNORECASE)
         clean = re.sub(r'\bInner\s*Engineer\b', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\b(ingenier|inginer)\b', '', clean, flags=re.IGNORECASE)
+        clean = re.sub(r'\bSpeak\s+voice\b', '', clean, flags=re.IGNORECASE)
         
         # STEP 4: Remove emotion/direction tags
         clean = re.sub(r'[\(\[\{][^\)\]\}]{0,30}[\)\]\}]', '', clean)
