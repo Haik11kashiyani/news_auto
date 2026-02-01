@@ -56,21 +56,35 @@ class VideoEditor:
                         bg_clip = bg_clip.subclip(0, seg_duration)
                     bg_clip = bg_clip.resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
                 else:
-                    # Image BG: Premium Ken Burns (GSAP-style easing)
-                    print(f"Applying Ken Burns to segment {i}...")
+                    # Image BG: TWO-LAYER VIRAL STYLE (Blur BG + Sharp Foreground with Ken Burns)
+                    print(f"Creating two-layer visual for segment {i}...")
                     
-                    # Load raw image
                     try:
-                        raw_clip = ImageClip(bg_path).set_duration(seg_duration)
-                        # Apply sophisticated Zoom/Pan
-                        bg_clip = self.apply_ken_burns(raw_clip, seg_duration)
+                        # LAYER 1: Blurred Background (fills entire screen)
+                        bg_img = ImageClip(bg_path).set_duration(seg_duration)
+                        bg_blurred = bg_img.resize(height=1920)
+                        if bg_blurred.w < 1080:
+                            bg_blurred = bg_blurred.resize(width=1080)
+                        bg_blurred = bg_blurred.crop(x1=0, y1=0, width=1080, height=1920)
+                        # Apply blur (resize down then up)
+                        bg_blurred = bg_blurred.resize(0.05).resize(20)
                         
-                        # Add darkening layer (30% opacity) to ensure overlay text pops
-                        dark_layer = ColorClip(size=(1080, 1920), color=(0,0,0)).set_opacity(0.3).set_duration(seg_duration)
-                        bg_clip = CompositeVideoClip([bg_clip, dark_layer], size=(1080,1920))
+                        # LAYER 2: Sharp Foreground with Ken Burns (centered, slightly smaller)
+                        fg_img = ImageClip(bg_path).set_duration(seg_duration)
+                        # Make foreground 90% of screen width for visual breathing room
+                        fg_img = fg_img.resize(width=int(1080 * 0.9))
+                        # Apply Ken Burns zoom/pan effect
+                        fg_img = self.apply_ken_burns(fg_img, seg_duration, zoom_ratio=1.08)
+                        fg_img = fg_img.set_position("center")
+                        
+                        # LAYER 3: Darkening overlay (subtle, 20% opacity)
+                        dark_layer = ColorClip(size=(1080, 1920), color=(0,0,0)).set_opacity(0.2).set_duration(seg_duration)
+                        
+                        # Composite all layers
+                        bg_clip = CompositeVideoClip([bg_blurred, fg_img, dark_layer], size=(1080, 1920)).set_duration(seg_duration)
                         
                     except Exception as e:
-                        print(f"Ken Burns failed: {e}. Falling back to static.")
+                        print(f"Two-layer visual failed: {e}. Falling back to simple resize.")
                         bg_clip = ImageClip(bg_path).set_duration(seg_duration).resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
 
                 # C. CARD OVERLAY

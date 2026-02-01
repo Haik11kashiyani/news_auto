@@ -108,34 +108,47 @@ Below are {len(articles)} news articles. Pick the ONE that will go most viral:
 ## Task 2: Generate Video Script for chosen article
 Create a clean video script using ONLY the actual news facts.
 
-CRITICAL RULES FOR "script" FIELD:
-- The "script" field contains text that will be spoken by TTS (text-to-speech)
-- DO NOT include the word "Voice" anywhere
-- DO NOT include "Narrator:", "Speaker:", "Audio:" or any similar prefixes
-- DO NOT include "[pause]", "(Happy)", or any direction tags
-- ONLY include the actual sentence to be spoken, nothing else
+=== EXTREMELY CRITICAL RULES FOR "script" FIELD ===
+The "script" field will be read aloud by a TTS engine. ANY metadata will be SPOKEN OUT LOUD.
 
-Example of WRONG script: "Voice: Breaking news about politics"
-Example of CORRECT script: "Breaking news about politics"
+ABSOLUTELY FORBIDDEN in "script" field:
+- "Voice" (the word Voice must NEVER appear)
+- "Voice =" or "Voice:" or "Voice -"
+- "Voice name =" (this is a common mistake)
+- "name =" or "Name ="
+- "Narrator:" or "Speaker:" or "Audio:"
+- "[pause]", "(Happy)", or any direction tags
+- ANY prefix before the actual sentence
+
+=== EXAMPLES OF WRONG "script" VALUES (will cause bugs) ===
+WRONG: "Voice = Breaking news about politics"
+WRONG: "Voice name = The stock market crashed today"
+WRONG: "name = Scientists discover new treatment"
+WRONG: "Narrator: The election results are in"
+WRONG: "Voice: (Excited) This is amazing news"
+
+=== EXAMPLES OF CORRECT "script" VALUES ===
+CORRECT: "Breaking news about politics"
+CORRECT: "The stock market crashed today"
+CORRECT: "Scientists discover new treatment"
+CORRECT: "The election results are in"
+
+The script field should contain ONLY the spoken sentence, starting with the actual content.
 
 Strictly output JSON only, no extra text:
 {{
     "chosen_index": <0-based index of chosen article>,
     "headline": "Full headline (NO truncation, NO ellipsis)",
     "segments": [
-        {{ "visual": "Key point 1 (max 15 words)", "script": "Spoken sentence WITHOUT any Voice/Narrator prefix." }},
-        {{ "visual": "Key point 2 (max 15 words)", "script": "Spoken sentence WITHOUT any Voice/Narrator prefix." }},
-        {{ "visual": "Key point 3 (max 15 words)", "script": "Spoken sentence WITHOUT any Voice/Narrator prefix." }}
+        {{ "visual": "Key point 1 (max 15 words)", "script": "Spoken sentence - JUST the sentence, no prefixes." }},
+        {{ "visual": "Key point 2 (max 15 words)", "script": "Spoken sentence - JUST the sentence, no prefixes." }},
+        {{ "visual": "Key point 3 (max 15 words)", "script": "Spoken sentence - JUST the sentence, no prefixes." }}
     ],
     "viral_description": "YouTube description",
     "viral_tags": ["#tag1", "#tag2"]
 }}
 
-Final Rules:
-- "script" = pure spoken text only. NO "Voice", NO prefixes, NO metadata.
-- "headline" = complete headline, never cut off.
-- Create 3-5 segments covering the main story.
-- Tone: Urgent, factual, engaging.
+FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spoken aloud and ruin the video.
 """
 
         # RETRY LOGIC with Exponential Backoff
