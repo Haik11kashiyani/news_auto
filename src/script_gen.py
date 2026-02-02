@@ -141,9 +141,11 @@ Strictly output JSON only, no extra text:
     "chosen_index": <0-based index of chosen article>,
     "headline": "Full headline (NO truncation, NO ellipsis)",
     "segments": [
-        {{ "visual": "Key point 1 (max 15 words)", "script": "Spoken sentence - JUST the sentence, no prefixes." }},
-        {{ "visual": "Key point 2 (max 15 words)", "script": "Spoken sentence - JUST the sentence, no prefixes." }},
-        {{ "visual": "Key point 3 (max 15 words)", "script": "Spoken sentence - JUST the sentence, no prefixes." }}
+        {{ "visual": "Key point 1 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
+        {{ "visual": "Key point 2 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
+        {{ "visual": "Key point 3 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
+        {{ "visual": "Key point 4 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
+        {{ "visual": "Key point 5 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }}
     ],
     "viral_description": "YouTube description",
     "viral_tags": ["#tag1", "#tag2"]
@@ -353,18 +355,18 @@ Rules for visual text:
         
         full_title = str(title)
         
-        # Build segments of roughly 150 chars (approx 20-30 words)
+        # Build segments of roughly 150 chars (approx 25-30 words) - LONGER content
         segments = []
         words = content_source.split(" ")
         current_segment = []
         current_len = 0
         
         for word in words:
-            if current_len + len(word) > 75: # Shorter visual segments for larger font
+            if current_len + len(word) > 150:  # Increased from 75 to 150 for longer content
                 text = " ".join(current_segment)
                 segments.append({
                     "visual": text,
-                    "script": text # Verify if script should be longer or same, keeping same for simple backup
+                    "script": text  # Script matches visual for backup
                 })
                 current_segment = [word]
                 current_len = len(word)
@@ -376,7 +378,7 @@ Rules for visual text:
             text = " ".join(current_segment)
             segments.append({"visual": text, "script": text})
             
-        # Limit to max 5 segments for video length sanity, but better than 3 fixed
+        # Limit to max 5 segments for video length
         segments = segments[:5] 
         
         # If very short, ensure at least 1
