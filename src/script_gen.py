@@ -108,10 +108,23 @@ IMPORTANT: Do NOT choose an article that is only a "developing story" or has no 
 
 {items_text}
 
-## Task 2: Generate DETAILED Video Script for chosen article
-Create a COMPLETE video script that covers ALL the key facts from the full article content above.
-DO NOT summarize - include ALL important details, names, numbers, and context from the full article.
-The video should be longer and more informative - cover the ENTIRE story.
+## Task 2: Generate Video Script for chosen article (TARGET: 60 seconds)
+Create a video script that fits within a 60-SECOND SHORT VIDEO timeframe.
+
+RULES FOR CONTENT LENGTH:
+- Total video must be around 50-60 seconds when spoken aloud
+- Each segment's "script" should be 2-3 sentences (about 10-12 seconds when spoken)
+- 5 segments × 12 seconds = 60 seconds total
+
+IF the article is long (more than 300 words):
+- SUMMARIZE intelligently - keep ALL key facts, names, numbers, dates
+- Focus on: WHO, WHAT, WHEN, WHERE, WHY, HOW
+- DO NOT skip important details - compress them smartly
+- Prioritize the most newsworthy/viral aspects
+
+IF the article is short:
+- Use ALL the content available
+- Expand with context where helpful
 
 === EXTREMELY CRITICAL RULES FOR "script" FIELD ===
 The "script" field will be read aloud by a TTS engine. ANY metadata will be SPOKEN OUT LOUD.
