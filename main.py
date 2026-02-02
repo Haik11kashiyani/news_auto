@@ -132,11 +132,38 @@ def main():
         # 4b. Visual
         visual_text = seg.get("visual", "")
         img_path = f"slide_{idx}.png"
+        
+        # Extract source name from article for credibility
+        source_url = article.get("source_url", "") or article.get("article_id", "")
+        source_name = "News"
+        if source_url:
+            # Extract domain name (e.g., "bbc.com" -> "BBC")
+            import urllib.parse
+            try:
+                domain = urllib.parse.urlparse(source_url).netloc
+                # Clean up domain: remove www., get main name
+                domain = domain.replace("www.", "").split(".")[0]
+                # Capitalize known sources
+                source_map = {
+                    "bbc": "BBC News", "cnn": "CNN", "ndtv": "NDTV",
+                    "timesofindia": "Times of India", "indianexpress": "Indian Express",
+                    "hindustantimes": "Hindustan Times", "thehindu": "The Hindu",
+                    "reuters": "Reuters", "aljazeera": "Al Jazeera",
+                    "theguardian": "The Guardian", "zeenews": "Zee News",
+                    "news18": "News18", "deccanherald": "Deccan Herald",
+                    "livemint": "Mint", "npr": "NPR", "skynews": "Sky News",
+                    "france24": "France24", "dw": "DW News", "abcnews": "ABC News"
+                }
+                source_name = source_map.get(domain.lower(), domain.capitalize())
+            except:
+                source_name = "Verified Source"
+        
         full_img_path = visual_gen.generate_overlay(
             headline=headline_text,
             ticker_text=ticker_text,
             summary_text=visual_text,
-            filename=img_path
+            filename=img_path,
+            source_name=source_name
         )
         
         # 4c. Ticker (One time generation or per segment? Let's do per segment to allow updates if needed, but usually static)

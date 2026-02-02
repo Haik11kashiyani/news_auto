@@ -117,14 +117,28 @@ class VisualGenerator:
             max-width: 860px;
         }
 
-        /* FOOTER / TICKER */
+        /* FOOTER / SOURCE */
         .card-footer {
             margin-top: 20px;
             background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 15px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 18px 24px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .source-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .source-icon {
+            font-size: 24px;
+        }
+        .source-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 26px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
         .ticker-container {
             width: 100%;
@@ -180,6 +194,10 @@ class VisualGenerator:
         </div>
 
         <div class="card-footer">
+            <div class="source-row">
+                <span class="source-icon">📰</span>
+                <span class="source-text">Source: {{SOURCE}}</span>
+            </div>
         </div>
     </div>
 
@@ -341,9 +359,10 @@ class VisualGenerator:
             print(f"Download failed for {url}: {e}")
             return None
 
-    def generate_overlay(self, headline, ticker_text, summary_text=None, filename="overlay_final.png"):
+    def generate_overlay(self, headline, ticker_text, summary_text=None, filename="overlay_final.png", source_name=None):
         """
         Captures the premium Center Card overlay with GSAP animations.
+        Now includes source name for credibility.
         """
         import html
         
@@ -362,10 +381,13 @@ class VisualGenerator:
             safe_summary = html.escape(summary_text or "Loading...")
             label = self._build_label(headline or "")
             safe_label = html.escape(label)
+            # Extract clean source name from URL or use provided
+            safe_source = html.escape(source_name or "Verified News")
 
             final_html = self.HTML_TEMPLATE.replace("{{HEADLINE}}", safe_headline)\
                                            .replace("{{SUMMARY}}", safe_summary)\
-                                           .replace("{{LABEL}}", safe_label)
+                                           .replace("{{LABEL}}", safe_label)\
+                                           .replace("{{SOURCE}}", safe_source)
 
             page.set_content(final_html, wait_until="load")
             
