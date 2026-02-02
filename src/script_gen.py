@@ -89,11 +89,12 @@ class ScriptGenerator:
         model_name, version = model_info
         print(f"[COMBINED] Using Model: {model_name}")
 
-        # Build compact listing for the prompt
+        # Build listing for the prompt - FULL CONTENT for detailed scripts
         items_text = ""
         for idx, art in enumerate(articles):
             t = art.get("title", "") or ""
-            d = (art.get("full_content", "") or art.get("description", "") or "")[:300]
+            # Use FULL content (up to 2000 chars) for detailed video scripts
+            d = (art.get("full_content", "") or art.get("description", "") or "")[:2000]
             d = d.replace("\n", " ").strip()
             items_text += f"[{idx}] {t}\n{d}\n\n"
 
@@ -107,8 +108,10 @@ IMPORTANT: Do NOT choose an article that is only a "developing story" or has no 
 
 {items_text}
 
-## Task 2: Generate Video Script for chosen article
-Create a clean video script using ONLY the actual news facts.
+## Task 2: Generate DETAILED Video Script for chosen article
+Create a COMPLETE video script that covers ALL the key facts from the full article content above.
+DO NOT summarize - include ALL important details, names, numbers, and context from the full article.
+The video should be longer and more informative - cover the ENTIRE story.
 
 === EXTREMELY CRITICAL RULES FOR "script" FIELD ===
 The "script" field will be read aloud by a TTS engine. ANY metadata will be SPOKEN OUT LOUD.
