@@ -129,6 +129,9 @@ class AudioGenerator:
         """
         Convert our script markers into SSML for better pacing.
         Supports [pause] and keeps text safe for XML.
+        NOTE: We do NOT wrap in <voice name=""> tag because edge-tts already
+        receives the voice via the Communicate constructor. Including the 
+        voice tag in SSML can cause "voice name =" to be spoken aloud.
         """
         # Basic escaping for SSML XML
         def esc(s: str) -> str:
@@ -147,15 +150,9 @@ class AudioGenerator:
         normalized = normalized.replace("[pause]", " <break time=\"450ms\"/> ")
         normalized = re.sub(r"\.\.\.+", " <break time=\"250ms\"/> ", normalized)
 
-        # Remove artificial prosody to fix "shaking" voice issues.
+        # Keep it simple - no voice wrapper (edge-tts handles voice selection)
         body = esc(normalized)
-        return (
-            f"<speak>"
-            f"<voice name=\"{esc(self.edge_voice)}\">"
-            f"{body}" 
-            f"</voice>"
-            f"</speak>"
-        )
+        return f"<speak>{body}</speak>"
 
     def _generate_edge_tts_audio(self, text, output_path):
         """
