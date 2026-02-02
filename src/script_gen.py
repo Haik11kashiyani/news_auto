@@ -152,16 +152,24 @@ CORRECT: "The election results are in"
 
 The script field should contain ONLY the spoken sentence, starting with the actual content.
 
+=== SMART SENTENCE BREAKING RULES ===
+CRITICAL: Each segment MUST contain COMPLETE sentences only.
+- DO NOT split a sentence between segments (causes awkward voice pauses)
+- If a sentence doesn't fit in current segment, put the ENTIRE sentence in the next segment
+- Each "visual" text should end at a sentence boundary (period, exclamation, question mark)
+- Each "script" should contain 2-3 COMPLETE sentences that match the visual topic
+- Better to have slightly shorter segments than to break sentences mid-way
+
 Strictly output JSON only, no extra text:
 {{
     "chosen_index": <0-based index of chosen article>,
     "headline": "Full headline (NO truncation, NO ellipsis)",
     "segments": [
-        {{ "visual": "Key point 1 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
-        {{ "visual": "Key point 2 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
-        {{ "visual": "Key point 3 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
-        {{ "visual": "Key point 4 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }},
-        {{ "visual": "Key point 5 (max 25 words - make it detailed)", "script": "Detailed spoken sentence (2-3 sentences) - JUST the content, no prefixes." }}
+        {{ "visual": "Complete point 1 - ends with full sentence (max 25 words)", "script": "2-3 complete spoken sentences that END properly. No mid-sentence cuts." }},
+        {{ "visual": "Complete point 2 - ends with full sentence (max 25 words)", "script": "2-3 complete spoken sentences that END properly. No mid-sentence cuts." }},
+        {{ "visual": "Complete point 3 - ends with full sentence (max 25 words)", "script": "2-3 complete spoken sentences that END properly. No mid-sentence cuts." }},
+        {{ "visual": "Complete point 4 - ends with full sentence (max 25 words)", "script": "2-3 complete spoken sentences that END properly. No mid-sentence cuts." }},
+        {{ "visual": "Complete point 5 - ends with full sentence (max 25 words)", "script": "2-3 complete spoken sentences that END properly. No mid-sentence cuts." }}
     ],
     "viral_description": "YouTube description",
     "viral_tags": ["#tag1", "#tag2"]

@@ -22,20 +22,29 @@ class VisualGenerator:
         /* Background dim layer (optional if we had video) */
         .glass-backdrop { position: absolute; top:0; left:0; width:100%; height:100%; z-index: -1; }
 
-        /* MAIN CARD */
+        /* MAIN CARD - Premium Gradient */
         .news-card {
-            width: 940px; /* Wider */
-            background: rgba(15, 15, 15, 0.90); /* Darker, more premium */
-            border: 3px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(40px); /* Stronger blur */
-            border-radius: 50px;
-            padding: 70px 60px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+            width: 940px;
+            /* PREMIUM GRADIENT - Deep purple to dark blue with subtle glow */
+            background: linear-gradient(145deg, 
+                rgba(25, 10, 40, 0.95) 0%, 
+                rgba(15, 15, 35, 0.98) 35%, 
+                rgba(10, 20, 45, 0.95) 70%, 
+                rgba(20, 10, 35, 0.95) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            /* Subtle glow effect */
+            box-shadow: 
+                0 0 60px rgba(100, 50, 180, 0.15),
+                0 30px 80px rgba(0, 0, 0, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(40px);
+            border-radius: 45px;
+            padding: 60px 55px 50px 55px;
             display: flex;
             flex-direction: column;
-            gap: 30px;
+            gap: 25px;
             transform-origin: center center;
-            opacity: 0; /* JS will fade in */
+            opacity: 0;
         }
 
         /* HEADER SECTION */
@@ -43,58 +52,69 @@ class VisualGenerator:
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 30px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 25px;
         }
         .brand-pill {
-            background: #FF0033;
+            /* Gradient red pill */
+            background: linear-gradient(135deg, #FF0044 0%, #CC0033 100%);
             color: #fff;
-            padding: 10px 24px;
+            padding: 12px 28px;
             border-radius: 100px;
             font-family: 'Chakra Petch', sans-serif;
             font-weight: 700;
-            font-size: 24px;
+            font-size: 22px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(255, 0, 68, 0.4);
         }
         .topic-label {
-            color: #00FFCC;
+            /* Cyan accent */
+            color: #00E5CC;
             font-family: 'Roboto Condensed', sans-serif;
-            font-size: 28px;
+            font-size: 26px;
             letter-spacing: 3px;
             text-transform: uppercase;
             font-weight: 700;
+            text-shadow: 0 0 20px rgba(0, 229, 204, 0.3);
         }
 
         /* CONTENT SECTION */
         .headline-main {
-            font-size: 72px; /* Maximum Impact */
-            line-height: 1.1;
+            font-size: 68px;
+            line-height: 1.12;
             font-weight: 800;
             color: #ffffff;
             margin: 0;
-            letter-spacing: -2px;
+            letter-spacing: -1.5px;
             padding-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
         
         .separator {
-            width: 140px;
-            height: 8px;
-            background: #00FFCC;
+            width: 120px;
+            height: 6px;
+            /* Gradient separator */
+            background: linear-gradient(90deg, #00E5CC 0%, #00AAFF 100%);
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(0, 229, 204, 0.4);
         }
 
         .summary-text {
-            font-size: 48px; /* Slightly smaller */
-            line-height: 1.3;
-            color: #e0e0e0;
+            font-size: 46px;
+            line-height: 1.35;
+            color: #e8e8e8;
             font-weight: 500;
-            border-left: 8px solid #FF0033;
-            padding-left: 30px;
-            margin-top: 30px;
-            padding-bottom: 20px;
-            max-width: 900px;
+            /* Gradient border left */
+            border-left: 6px solid;
+            border-image: linear-gradient(180deg, #FF0044, #FF6600) 1;
+            padding-left: 28px;
+            margin-top: 20px;
+            padding-bottom: 15px;
+            /* LARGER - fits 6 lines now */
+            min-height: 380px;
+            max-width: 860px;
         }
 
         /* FOOTER / TICKER */
