@@ -157,17 +157,24 @@ class AudioGenerator:
     def _generate_edge_tts_audio(self, text, output_path):
         """
         Uses edge-tts (FREE, no key). Requires internet access.
+        NOTE: We pass PLAIN TEXT directly - NO SSML wrapper tags.
+        Edge-tts handles the voice internally via the voice parameter.
         """
         try:
             import edge_tts  # type: ignore
 
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            ssml = self._to_ssml(text)
-
+            
+            # DO NOT use _to_ssml() - pass plain text directly
+            # SSML tags like <speak> can be spoken aloud by edge-tts
+            plain_text = text.strip()
+            
+            # Handle pauses by converting to natural punctuation
+            plain_text = plain_text.replace("[pause]", "...")
+            
             async def _run():
-                # Removed pitch/rate args that were causing errors/robotic sound
-                # en-US-AriaNeural is naturally good paced.
-                communicate = edge_tts.Communicate(ssml, voice=self.edge_voice)
+                # Pass plain text, NOT SSML - voice is handled by the parameter
+                communicate = edge_tts.Communicate(plain_text, voice=self.edge_voice)
                 await communicate.save(output_path)
 
             print(f"Using FREE Edge Neural TTS voice: {self.edge_voice}")
