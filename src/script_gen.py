@@ -278,26 +278,33 @@ FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spo
         
         prompt_text = f"""
 You are a **top tier Indian news script writer** for viral vertical videos (YouTube Shorts, Reels).
+Your goal is to make this video go VIRAL (10000% engagement).
 
 Strictly output JSON only, no extra text:
 {{
-    "headline": "Viral, curiosity-driving title (max 85 chars)",
-    "ticker_text": "Short, punchy ticker line",
+    "headline": "CLICKBAIT TITLE (max 60 chars) - Use ALL CAPS, Emojis, and Questions. MUST SHOCK THE VIEWER.",
+    "ticker_text": "Breaking News • Viral Update • Must Watch",
     "segments": [
         {{ "visual": "Slide 1 text (Max 15 words)", "script": "Spoken sentence for this slide." }},
         {{ "visual": "Slide 2 text (Max 15 words)", "script": "Spoken sentence for this slide." }},
         {{ "visual": "Slide 3 text (Max 15 words)", "script": "Spoken sentence for this slide." }}
     ],
-    "viral_description": "YouTube description",
-    "viral_tags": ["#tag1", "..."],
-    "video_search_keywords": ["keyword1", "keyword2"]
+    "viral_description": "First 3 lines must be a CLIFFHANGER HOOK! Then detailed summary. Use emotional language (Shocking, Heartbreaking, Amazing). Add 'Subscribe for more updates'.",
+    "viral_tags": ["#Shorts", "#Viral", "#Trending", "#News", "SPECIFIC_ENTITY_TAGS_HERE"],
+    "video_search_keywords": ["keyword1", "keyword2", "keyword3", "high search volume terms"]
 }}
+
+Rules for "viral_tags":
+- DYNAMIC: Include specific names of people, places, and events mentioned in the article (e.g., #Modi, #ViratKohli, #DelhiRains).
+- TRENDING: Mix high-volume generic tags (#India) with niche specific tags.
+- QUANTITY: Generate at least 15 high-impact tags.
 
 Rules for "segments":
 - Create 3-5 segments that flow logically.
 - **SYNC IS CRITICAL**: The "script" text MUST match exactly what should be spoken while the "visual" text is shown.
 - **NO FILLER**: Start immediately with the news.
-- Tone: Urgent, Insider, Fast-paced.
+- Tone: Urgent, Insider, Fast-paced, Sensational.
+- MAKE IT SOUND VIRAL. Not boring news.
 
 Rules for visual text:
 - NOT subtitles. Visual Headlines. Large font, few words.

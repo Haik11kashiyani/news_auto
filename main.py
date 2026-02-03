@@ -215,8 +215,25 @@ def main():
         dedup.mark_processed(article)  # NEW: Dedup tracking
         
         # Note: Upload comes next
-        print("--- 6. Upload Stub (Pending) ---")
-        # uploader.upload(final_path, script_data)
+        print("--- 6. Uploading to YouTube ---")
+        from src.uploader import YouTubeUploader
+        uploader = YouTubeUploader()
+        
+        video_title = script_data.get("headline", "Breaking News")
+        video_desc = script_data.get("viral_description", "Daily News Update #Shorts")
+        video_tags = script_data.get("viral_tags", ["#Shorts", "#News"])
+        
+        # Ensure tags are a list
+        if isinstance(video_tags, str):
+            video_tags = [t.strip() for t in video_tags.split(",")]
+            
+        # Call upload
+        video_id = uploader.upload_video(final_path, video_title, video_desc, video_tags)
+        
+        if video_id:
+            print(f"SUCCESS: Video uploaded to YouTube! ID: {video_id}")
+        else:
+            print("WARNING: Upload failed (check credentials or quota). Video saved locally.")
     else:
         print("FAILURE: Video assembly failed.")
         sys.exit(1)
