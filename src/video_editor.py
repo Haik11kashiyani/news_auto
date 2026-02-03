@@ -65,7 +65,10 @@ class VideoEditor:
                         bg_blurred = bg_img.resize(height=1920)
                         if bg_blurred.w < 1080:
                             bg_blurred = bg_blurred.resize(width=1080)
-                        bg_blurred = bg_blurred.crop(x1=0, y1=0, width=1080, height=1920)
+                        # FIX: Center crop instead of top-left
+                        x_center = bg_blurred.w / 2
+                        y_center = bg_blurred.h / 2
+                        bg_blurred = bg_blurred.crop(x_center=x_center, y_center=y_center, width=1080, height=1920)
                         # Apply blur (resize down then up)
                         bg_blurred = bg_blurred.resize(0.05).resize(20)
                         
@@ -84,8 +87,12 @@ class VideoEditor:
                         bg_clip = CompositeVideoClip([bg_blurred, fg_img, dark_layer], size=(1080, 1920)).set_duration(seg_duration)
                         
                     except Exception as e:
+                    except Exception as e:
                         print(f"Two-layer visual failed: {e}. Falling back to simple resize.")
-                        bg_clip = ImageClip(bg_path).set_duration(seg_duration).resize(height=1920).crop(x1=0, y1=0, width=1080, height=1920)
+                        # FIX: Center crop fallback
+                        bg_temp = ImageClip(bg_path).set_duration(seg_duration).resize(height=1920)
+                        if bg_temp.w < 1080: bg_temp = bg_temp.resize(width=1080)
+                        bg_clip = bg_temp.crop(x_center=bg_temp.w/2, y_center=bg_temp.h/2, width=1080, height=1920)
 
                 # C. CARD OVERLAY
                 # Static center card
@@ -257,7 +264,9 @@ class VideoEditor:
             from PIL import Image
             img = Image.fromarray(frame)
             cropped = img.crop((x1, y1, x1+cw, y1+ch))
-            resized = cropped.resize((1080, 1920), Image.LANCZOS)
+            # FIX: Resize to the ORIGINAL clip dimensions, not hardcoded 1080x1920
+            # This prevents 90% width images from being stretched back to full screen
+            resized = cropped.resize((w, h), Image.LANCZOS)
             return np.array(resized)
 
         return clip.fl(filter)
