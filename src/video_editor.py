@@ -87,7 +87,6 @@ class VideoEditor:
                         bg_clip = CompositeVideoClip([bg_blurred, fg_img, dark_layer], size=(1080, 1920)).set_duration(seg_duration)
                         
                     except Exception as e:
-                    except Exception as e:
                         print(f"Two-layer visual failed: {e}. Falling back to simple resize.")
                         # FIX: Center crop fallback
                         bg_temp = ImageClip(bg_path).set_duration(seg_duration).resize(height=1920)
