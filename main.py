@@ -85,8 +85,7 @@ def main():
         
         # 4a. Audio
         audio_path = f"generated/segment_{article['article_id']}_{idx}.mp3"
-        # Force script to match placeholder visual
-        script_text = "More details to follow."
+        script_text = seg.get("script", "")
         
         # COMPREHENSIVE AUDIO CLEANUP - SECOND LINE OF DEFENSE
         import re
@@ -162,7 +161,7 @@ def main():
         full_img_path = visual_gen.generate_overlay(
             headline=headline_text,
             ticker_text=ticker_text,
-            summary_text=visual_text,
+            summary_text=clean_text,
             filename=img_path,
             source_name=source_name
         )

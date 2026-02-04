@@ -378,7 +378,7 @@ class VisualGenerator:
             # BAKE CONTENT INTO HTML (No JS Injection fragility)
             print("DEBUG: Baking content into HTML...")
             safe_headline = html.escape(headline or "Top Story")
-            safe_summary = "More details to follow..."
+            safe_summary = html.escape(summary_text or "Loading...")
             label = self._build_label(headline or "")
             safe_label = html.escape(label)
             # Extract clean source name from URL or use provided
