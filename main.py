@@ -85,7 +85,8 @@ def main():
         
         # 4a. Audio
         audio_path = f"generated/segment_{article['article_id']}_{idx}.mp3"
-        script_text = seg.get("script", "")
+        # Force script to match placeholder visual
+        script_text = "More details to follow."
         
         # COMPREHENSIVE AUDIO CLEANUP - SECOND LINE OF DEFENSE
         import re
