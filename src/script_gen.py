@@ -81,6 +81,10 @@ class ScriptGenerator:
             print("Gemini disabled. Using backup for first article.")
             return {"chosen_article": articles[0], "script": self._backup_template(articles[0])}
 
+        # 1. OPTIONAL: Small delay to avoid rapid-fire hits if multiple workflows run
+        print("[Gemini] Cooling down for 5s before API call...")
+        time.sleep(5)
+
         model_info = self._discover_model()
         if not model_info:
             print("No model available. Using backup.")
@@ -93,8 +97,8 @@ class ScriptGenerator:
         items_text = ""
         for idx, art in enumerate(articles):
             t = art.get("title", "") or ""
-            # Use FULL content (up to 2000 chars) for detailed video scripts
-            d = (art.get("full_content", "") or art.get("description", "") or "")[:2000]
+            # Use FULL content (up to 4000 chars) for better context
+            d = (art.get("full_content", "") or art.get("description", "") or "")[:4000]
             d = d.replace("\n", " ").strip()
             items_text += f"[{idx}] {t}\n{d}\n\n"
 
@@ -111,20 +115,23 @@ IMPORTANT: Do NOT choose an article that is only a "developing story" or has no 
 ## Task 2: Generate Video Script for chosen article (TARGET: 60 seconds)
 Create a video script that fits within a 60-SECOND SHORT VIDEO timeframe.
 
+### CRITICAL SUMMARIZATION RULES:
+- **SUMMARIZE** the content. Do NOT just copy-paste from the article.
+- If the news is long, distill it down to the most impactful facts.
+- The script MUST be a concise narrative.
+- **Strict Time Limit**: The total spoken script MUST be readable in ~50-60 seconds.
+
 RULES FOR CONTENT LENGTH:
-- Total video must be around 50-60 seconds when spoken aloud
-- Each segment's "script" should be 2-3 sentences (about 10-12 seconds when spoken)
-- 5 segments × 12 seconds = 60 seconds total
+- Each segment's "script" should be approx 10-12 seconds when spoken.
+- 5 segments × 12 seconds = 60 seconds total.
 
 IF the article is long (more than 300 words):
-- SUMMARIZE intelligently - keep ALL key facts, names, numbers, dates
-- Focus on: WHO, WHAT, WHEN, WHERE, WHY, HOW
-- DO NOT skip important details - compress them smartly
-- Prioritize the most newsworthy/viral aspects
+- **CONDENSE** without losing key details (Who, What, When, Where, Why).
+- Remove fluff, repetition, and minor details.
+- Focus on the "Viral Hook" and the "Key Outcome".
 
 IF the article is short:
-- Use ALL the content available
-- Expand with context where helpful
+- Expand slightly with context, but keep it punchy.
 
 === EXTREMELY CRITICAL RULES FOR "script" FIELD ===
 The "script" field will be read aloud by a TTS engine. ANY metadata will be SPOKEN OUT LOUD.
@@ -180,7 +187,7 @@ FINAL REMINDER: If you write "Voice" or "name =" in script field, it will be spo
 
         # RETRY LOGIC with Exponential Backoff
         max_retries = 3
-        base_delay = 10  # seconds
+        base_delay = 15  # Increased base delay
         
         url = f"{self.base_url}/{version}/models/{model_name}:generateContent?key={self.api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
