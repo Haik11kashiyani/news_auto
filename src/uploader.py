@@ -18,8 +18,15 @@ class YouTubeUploader:
         Expects the JSON structure of a 'token.json' (refresh token included).
         """
         creds_json = os.getenv("YOUTUBE_CREDS_JSON")
+        
+        # Fallback: Check for local token.json if env var is missing
+        if not creds_json and os.path.exists("token.json"):
+            print("Env var YOUTUBE_CREDS_JSON not found. Using local token.json...")
+            with open("token.json", "r") as f:
+                creds_json = f.read()
+
         if not creds_json:
-            print("Error: YOUTUBE_CREDS_JSON environment variable not found.")
+            print("Error: YOUTUBE_CREDS_JSON environment variable not found and no local token.json.")
             return False
 
         try:

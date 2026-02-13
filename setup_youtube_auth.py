@@ -24,7 +24,13 @@ def main():
         flow = InstalledAppFlow.from_client_secrets_file(
             "client_secret.json", SCOPES
         )
-        creds = flow.run_local_server(port=0)
+        # prompt='consent' ensures we get a refresh token even if we've authorized before.
+        # authorization_prompt_message is purely cosmetic for the CLI.
+        creds = flow.run_local_server(
+            port=0,
+            authorization_prompt_message="Please visit this URL: {url}",
+            prompt='consent'
+        )
         
         # Convert credentials to JSON format suitable for storing in secrets
         creds_json = creds.to_json()
